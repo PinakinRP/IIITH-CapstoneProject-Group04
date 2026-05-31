@@ -1,0 +1,82 @@
+# -----------------------------
+# Python
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# -----------------------------
+# Streamlit
+# -----------------------------
+.streamlit/secrets.toml
+.streamlit/*.toml
+
+# Streamlit cache
+.streamlit/cache/
+.streamlit/runtime/
+
+# -----------------------------
+# Jupyter Notebook (if used)
+# -----------------------------
+.ipynb_checkpoints/
+
+# -----------------------------
+# IDEs
+# -----------------------------
+.vscode/
+.idea/
+
+# PyCharm
+*.iml
+
+# -----------------------------
+# OS files
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+
+# -----------------------------
+# Distribution / builds
+# -----------------------------
+build/
+dist/
+*.egg-info/
+
+# -----------------------------
+# Environment variables
+# -----------------------------
+.env
+.env.local
+.env.*
+
+# -----------------------------
+# Streamlit deployment artifacts
+# -----------------------------
+.streamlit/config.toml
+.streamlit/pages.json
+
+# -----------------------------
+# Node (if frontend used later)
+# -----------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -----------------------------
+# Temporary files
+# -----------------------------
+*.tmp
+*.swp
