@@ -1,5 +1,5 @@
 import streamlit as st
-from components.sidebar import render_sidebar
+import pages.ai_assistant as assistant
 
 st.set_page_config(
     page_title="Inventory System",
@@ -7,6 +7,4 @@ st.set_page_config(
     layout="wide"
 )
 
-render_sidebar()
-
-st.title("Welcome to Inventory Management System")
+assistant.render_page()

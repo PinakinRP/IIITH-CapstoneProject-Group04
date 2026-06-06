@@ -60,12 +60,14 @@ def delete_product(product_code:str):
     else:
         return 0
 
-def update_invetory_for_products(new_stock_dataframe:pd.DataFrame):
-    for sku, new_stock in new_stock_dataframe.items():
-        mask = (
-            st.session_state.products["Product Code"] == sku
-        )
-        st.session_state.products.loc[
-            mask,
-            "Current Stock"
-        ] = new_stock
+def update_inventory_for_products(new_stock_dataframe: pd.DataFrame):
+    # Fix: Use .iterrows() to safely loop row-by-row
+    for idx, row in new_stock_dataframe.iterrows():
+        sku = row["Product Code"]
+        new_stock = row["New Stock"]
+        
+        # Locate the product row in master database state
+        mask = st.session_state.products["Product Code"] == sku
+        
+        # Overwrite the stock value safely
+        st.session_state.products.loc[mask, "Current Stock"] = new_stock
