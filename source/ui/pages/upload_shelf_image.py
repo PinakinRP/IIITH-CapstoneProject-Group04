@@ -13,28 +13,14 @@ def initialize_session_state():
         st.session_state.uploader_key_version = 0
 
 def update_inventory():
-    base_df = st.session_state.processed_counts
-    editor_state = st.session_state.get("inventory_from_photo", {})
-    edited_rows = editor_state.get("edited_rows", {})
+    # Save to database
+    update_inventory_for_products(st.session_state.processed_counts)
+    st.session_state.success_message = "Inventory has been updated successfully"
     
-    if base_df is not None and not base_df.empty:
-        final_df = base_df.copy()
-        
-        # Apply edits
-        for row_idx, changes in edited_rows.items():
-            if "New Stock" in changes:
-                final_df.at[int(row_idx), "New Stock"] = changes["New Stock"]
-        
-        # Save to database
-        update_inventory_for_products(final_df)
-        st.session_state.success_message = "Inventory has been updated successfully"
-        
-        # FORCE FULL CLEANUP: Reset variables & bump key version to destroy widget cache
-        st.session_state.processed_counts = None
-        st.session_state.uploader_key_version += 1
-        st.session_state.trigger_clean_rerun = True
-    else:
-        st.error("Nothing to update the inventory.")
+    # FORCE FULL CLEANUP: Reset variables & bump key version to destroy widget cache
+    st.session_state.processed_counts = None
+    st.session_state.uploader_key_version += 1
+    st.session_state.trigger_clean_rerun = True
 
 def render_page():
     initialize_session_state()
@@ -91,23 +77,38 @@ def render_page():
 
         # Display components on screen safely
         with upload_photo_container:
-            st.image(photo_uploaded, use_container_width=True)
+            st.image(photo_uploaded, width=300)
             
         with product_count_grid_placeholder:
             st.divider()
-            st.subheader("📝 Verify & Correct Detected Quantities")
-            st.info("Double-click any number in the **New Stock** column to manually adjust AI miscounts.")
+            st.subheader("📝 Detected Products & Quantities")
             
-            st.data_editor(
-                st.session_state.processed_counts,
-                key="inventory_from_photo",
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Product Code": st.column_config.TextColumn(disabled=True),
-                    "New Stock": st.column_config.NumberColumn(min_value=0, step=1, required=True)
-                }
-            )
+            column_size = [5, 1, 1]
+
+            # Header
+            header_cols = st.columns(column_size)
+            header_cols[0].markdown("**Product Code**")
+            header_cols[1].markdown("**Detected Quantity**")
+            header_cols[2].markdown("**Corrected Quantity**")
+
+            # Rows
+            for idx, row in st.session_state.processed_counts.iterrows():
+                cols = st.columns(column_size)
+                p_code = row["Product Code"]
+                d_stock = row["New Stock"]
+
+                cols[0].write(p_code)
+                cols[1].write(d_stock)
+                c_stock = cols[2].number_input(
+                    label="corrected_stock",
+                    label_visibility="collapsed",
+                    min_value=0,
+                    value=d_stock,
+                    step=1,
+                    key=f"corrected_stock_{p_code}"
+                )
+                df = st.session_state.processed_counts
+                df.loc[df["Product Code"] == p_code, "New Stock"] = c_stock
 
             st.button(
                 "Update Inventory",
