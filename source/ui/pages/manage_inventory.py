@@ -71,14 +71,15 @@ def show_products_grid():
     
     # Render the grid inside the grid_container placeholder
     with grid_container:
-        column_size = [2, 4, 1, 1, 1]
+        column_size = [2, 4, 2, 1, 1, 1]
         # Header
         header_cols = st.columns(column_size)
         header_cols[0].markdown("**Product Code**")
         header_cols[1].markdown("**Product Name**")
-        header_cols[2].markdown("**Current Stock**")
-        header_cols[3].markdown("**New Stock**")
-        header_cols[4].markdown("**Delete**")
+        header_cols[2].markdown("**Shelf**")
+        header_cols[3].markdown("**Current Stock**")
+        header_cols[4].markdown("**New Stock**")
+        header_cols[5].markdown("**Delete**")
 
         # Rows
         for idx, row in st.session_state.search_results.iterrows():
@@ -88,9 +89,10 @@ def show_products_grid():
 
             cols[0].write(p_code)
             cols[1].write(row["Product Name"])
-            cols[2].write(p_stock)
+            cols[2].write(row["Shelf Id"])
+            cols[3].write(p_stock)
 
-            new_stock = cols[3].number_input(
+            new_stock = cols[4].number_input(
                 label="new_stock",
                 label_visibility="collapsed",
                 min_value=0,
@@ -100,16 +102,16 @@ def show_products_grid():
             )
             st.session_state.new_stock_values[p_code] = new_stock
 
-            # Fix: Wrapped p_code into a valid single-item Python tuple using a comma
-            cols[4].button(
+            # Wrapped p_code into a valid single-item Python tuple using a comma
+            cols[5].button(
                 "🗑️",
                 key=f"delete_{p_code}",
                 on_click=delete_product,
                 args=(p_code,) 
             )
 
-def add_product(p_code: str, p_name: str, p_stock: int):
-    is_success, message = ims.add_product(p_code, p_name, p_stock)
+def add_product(p_code: str, p_name: str, shelf_id: str, p_stock: int):
+    is_success, message = ims.add_product(p_code, p_name, shelf_id, p_stock)
     if is_success:
         refresh_search_results()
         add_product_container.success(message)
@@ -120,12 +122,13 @@ def show_add_product_form():
     add_product_container.divider()
     add_product_container.subheader("Add Product")
     with add_product_container:
-        column_size = [2, 4, 1, 1, 1]
+        column_size = [2, 4, 2, 1]
         # Header
         header_cols = st.columns(column_size)
         header_cols[0].markdown("**Product Code**")
         header_cols[1].markdown("**Product Name**")
-        header_cols[2].markdown("**Stock**")
+        header_cols[2].markdown("**Shelf**")
+        header_cols[3].markdown("**Stock**")
         cols = st.columns(column_size)
         # Detail
         p_code = cols[0].text_input(
@@ -136,7 +139,11 @@ def show_add_product_form():
             label="product_name",
             label_visibility="collapsed"
         )
-        p_stock = cols[2].number_input(
+        shelf_id = cols[2].text_input(
+            label="shelf_id",
+            label_visibility="collapsed"
+        )
+        p_stock = cols[3].number_input(
             label="product_stock",
             label_visibility="collapsed",
             min_value=0,
@@ -147,7 +154,7 @@ def show_add_product_form():
 
     add_product_container.button("Add Product",
                                  on_click=add_product,
-                                 args=(p_code, p_name, p_stock))
+                                 args=(p_code, p_name, shelf_id, p_stock))
 
 def render_page():
     global search_container, grid_container, save_button_container, save_button_message, add_product_container

@@ -16,10 +16,20 @@ def initialize_session_state():
         st.session_state.boxed_image = None
 
 def update_inventory():
-    # Save to database
-    ims.update_inventory_for_products(st.session_state.processed_counts)
-    st.session_state.success_message = "Inventory has been updated successfully"
-    
+    # Update existing inventory
+    product_update_count = ims.update_inventory_for_products(st.session_state.processed_counts)
+
+    missing_product_codes = [
+        product_code
+        for product_code in st.session_state.processed_counts["Product Code"]
+        if product_update_count.get(product_code, 0) == 0
+    ]
+
+    if len(missing_product_codes) == 0:
+        st.session_state.success_message = "Inventory has been updated successfully"
+    else:
+        st.session_state.warning_message = f"Product codes {",".join(missing_product_codes)} not found." 
+
     # FORCE FULL CLEANUP: Reset variables & bump key version to destroy widget cache
     st.session_state.processed_counts = None
     st.session_state.uploader_key_version += 1
@@ -27,6 +37,7 @@ def update_inventory():
     st.session_state.boxed_image = None
 
 def render_page():
+    # pass
     initialize_session_state()
     
     st.set_page_config(
@@ -50,10 +61,15 @@ def render_page():
     if "success_message" in st.session_state and st.session_state.success_message:
         st.success(st.session_state.success_message)
         st.session_state.success_message = None
+    elif "warning_message" in st.session_state and st.session_state.warning_message:
+        st.warning(st.session_state.warning_message)
+        st.session_state.warning_message = None
 
     # --- Render Form Layout Natively ---
     upload_photo_container.title("📷 Upload Shelf Photo")
     upload_photo_container.write("Upload a shelf photo to update inventory.")
+
+    shelf_id = upload_photo_container.text_input(label="Shelf:", max_chars=30)
 
     # Dynamic key rotation format string
     active_uploader_key = f"shelf_photo_v{st.session_state.uploader_key_version}"
@@ -77,6 +93,7 @@ def render_page():
                     )
                 else:
                     st.session_state.processed_counts = raw_counts
+                st.session_state.processed_counts["Shelf Id"] = shelf_id
                 st.rerun() # Refresh to populate layout grids smoothly
 
         with st.spinner("Displaying images and detections..."):
@@ -127,7 +144,7 @@ def render_page():
                     type="primary",
                     on_click=update_inventory
                 )
-    else:
+    elif "processed_counts" in st.session_state:
         # If the user clicks the small close "X" manually on the widget, clear calculations
         st.session_state.processed_counts = None
 

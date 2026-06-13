@@ -3,7 +3,6 @@ from collections import Counter
 from PIL import Image
 from ultralytics import YOLO
 
-
 def get_product_counts_boxed_image(image_bytes: BytesIO) -> tuple[BytesIO, dict]:
     image = Image.open(image_bytes)
 

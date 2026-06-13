@@ -9,10 +9,10 @@ import pandas as pd
 if "products" not in st.session_state:
     st.session_state.products = pd.DataFrame(
         [
-            {"Product Code": "BEV000001", "Product Name": "Coke", "Current Stock": 25},
-            {"Product Code": "BEV000002", "Product Name": "Sprite", "Current Stock": 120},
-            {"Product Code": "BEV000003", "Product Name": "Appy", "Current Stock": 80},
-            {"Product Code": "BEV000004", "Product Name": "Campa", "Current Stock": 35},
+            {"Shelf Id": "Refreshments", "Product Code": "BEV000001", "Product Name": "Coke", "Current Stock": 25},
+            {"Shelf Id": "Refreshments", "Product Code": "BEV000002", "Product Name": "Sprite", "Current Stock": 120},
+            {"Shelf Id": "Refreshments", "Product Code": "BEV000003", "Product Name": "Appy", "Current Stock": 80},
+            {"Shelf Id": "Refreshments", "Product Code": "BEV000004", "Product Name": "Campa", "Current Stock": 35},
         ]
     )
 
@@ -28,11 +28,13 @@ def get_products(search_value):
         result = None
     return result
 
-def add_product(p_code:str, p_name:str, p_stock:int) -> tuple[bool, str]:
+def add_product(p_code:str, p_name:str, shelf_id:str, p_stock:int) -> tuple[bool, str]:
     if not p_code or not p_code.strip():
         return False, "Product code required"
     if not p_name or not p_name.strip():
         return False, "Product name required"
+    if not shelf_id or not shelf_id.strip():
+        return False, "Shelf required"
     if p_stock < 0:
         return False, "Stock cannot be negative"
     
@@ -44,7 +46,7 @@ def add_product(p_code:str, p_name:str, p_stock:int) -> tuple[bool, str]:
         return False, "Product name already present. Search the product and then update it."
     else:
         # Insert a new row (fill missing columns with defaults or None)
-        new_row = {"Product Code": p_code.strip(), "Product Name": p_name.strip(), "Current Stock": p_stock}
+        new_row = {"Product Code": p_code.strip(), "Product Name": p_name.strip(), "Shelf Id": shelf_id, "Current Stock": p_stock}
         st.session_state.products = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         return True, "Product added"
 
@@ -60,14 +62,23 @@ def delete_product(product_code:str):
     else:
         return 0
 
-def update_inventory_for_products(new_stock_dataframe: pd.DataFrame):
-    # Fix: Use .iterrows() to safely loop row-by-row
+def update_inventory_for_products(new_stock_dataframe: pd.DataFrame) -> dict:
+    update_count = {}
     for idx, row in new_stock_dataframe.iterrows():
         sku = row["Product Code"]
         new_stock = row["New Stock"]
         
         # Locate the product row in master database state
-        mask = st.session_state.products["Product Code"] == sku
+        mask = (
+            st.session_state.products["Product Code"]
+            .astype(str)
+            .str.strip()
+            .str.casefold()
+            == str(sku).strip().casefold()
+        )
         
         # Overwrite the stock value safely
         st.session_state.products.loc[mask, "Current Stock"] = new_stock
+
+        update_count[sku] = mask.sum()
+    return update_count
