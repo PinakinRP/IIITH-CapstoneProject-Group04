@@ -13,6 +13,9 @@ def initialize_session_state():
     if "search_text" not in st.session_state:
         st.session_state.search_text = ""
 
+    if "manage_inventory_warning_message" not in st.session_state:
+        st.session_state.manage_inventory_warning_message = ""
+
 def reset_page_state():
     st.session_state.search_results = pd.DataFrame()
     st.session_state.new_stock_values = {}
@@ -35,6 +38,10 @@ def show_search_bar():
 
     if search_clicked:
         refresh_search_results()
+        if st.session_state.search_results is None or st.session_state.search_results.empty:
+            st.session_state.manage_inventory_warning_message = "No item found. Please search by correct product code or product name."
+        else:
+            st.session_state.manage_inventory_warning_message != ""
 
 def update_stock():
     # Update backend database
@@ -61,6 +68,8 @@ def delete_product(p_code: str):
 
 def show_products_grid():
     if st.session_state.search_results is None or st.session_state.search_results.empty:
+        if st.session_state.manage_inventory_warning_message != "":
+            grid_container.warning(st.session_state.manage_inventory_warning_message)
         return
     
     grid_container.divider()
@@ -115,6 +124,10 @@ def add_product(p_code: str, p_name: str, shelf_id: str, p_stock: int):
     if is_success:
         refresh_search_results()
         add_product_container.success(message)
+        st.session_state.add_product_code = ""
+        st.session_state.add_product_name = ""
+        st.session_state.add_shelf_id = ""
+        st.session_state.add_product_stock = 0
     else:
         add_product_container.error(message)
 
@@ -133,23 +146,29 @@ def show_add_product_form():
         # Detail
         p_code = cols[0].text_input(
             label="product_code",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="add_product_code"
         )
+
         p_name = cols[1].text_input(
             label="product_name",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="add_product_name"
         )
+
         shelf_id = cols[2].text_input(
             label="shelf_id",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="add_shelf_id"
         )
+
         p_stock = cols[3].number_input(
             label="product_stock",
             label_visibility="collapsed",
             min_value=0,
             value=0,
             step=1,
-            key="product_stock"
+            key="add_product_stock"
         )
 
     add_product_container.button("Add Product",

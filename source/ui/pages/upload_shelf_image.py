@@ -28,7 +28,7 @@ def update_inventory():
     if len(missing_product_codes) == 0:
         st.session_state.success_message = "Inventory has been updated successfully"
     else:
-        st.session_state.warning_message = f"Product codes {",".join(missing_product_codes)} not found." 
+        st.session_state.upload_shelf_image_warning_message = f"Product code(s) {",".join(missing_product_codes)} not found." 
 
     # FORCE FULL CLEANUP: Reset variables & bump key version to destroy widget cache
     st.session_state.processed_counts = None
@@ -60,10 +60,10 @@ def render_page():
     # Display banner safely post-rerun
     if "success_message" in st.session_state and st.session_state.success_message:
         st.success(st.session_state.success_message)
-        st.session_state.success_message = None
-    elif "warning_message" in st.session_state and st.session_state.warning_message:
-        st.warning(st.session_state.warning_message)
-        st.session_state.warning_message = None
+        del st.session_state["success_message"]
+    elif "upload_shelf_image_warning_message" in st.session_state and st.session_state.upload_shelf_image_warning_message:
+        st.warning(st.session_state.upload_shelf_image_warning_message)
+        del st.session_state["upload_shelf_image_warning_message"]
 
     # --- Render Form Layout Natively ---
     upload_photo_container.title("📷 Upload Shelf Photo")
