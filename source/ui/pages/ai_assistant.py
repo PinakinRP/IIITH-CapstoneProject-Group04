@@ -71,6 +71,9 @@ def render_chatbot():
         if msg["role"] == "user":
             st.markdown(f"""
                 <div class="user-container">
+                    <b>Me</b>
+                </div>
+                <div class="user-container">
                     <div class="user-message">{msg["content"]}</div>
                 </div>
             """, unsafe_allow_html=True)
@@ -78,6 +81,9 @@ def render_chatbot():
         # ASSISTANT MESSAGE
         else:
             st.markdown(f"""
+                <div class="assistant-container">
+                    <b>Assistant</b>
+                </div>
                 <div class="assistant-container">
                     <div class="assistant-message">{msg["content"]}</div>
                 </div>
