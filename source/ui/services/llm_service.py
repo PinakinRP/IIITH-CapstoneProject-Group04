@@ -22,7 +22,7 @@ def get_response_tokenizer():
 def get_response_model():
     return T5ForConditionalGeneration.from_pretrained("google/flan-t5-large")
 
-def format_response(sql_result):
+def format_response(user_query, sql_result):
     message_tokenizer = get_response_tokenizer()
     message_model = get_response_model()
 
@@ -35,7 +35,7 @@ def format_response(sql_result):
 
         # Craft a prompt for the LLM to generate a user-friendly message
         # Explicitly instruct the model not to output SQL and to provide a summary.
-        prompt = f"As an inventory assistant, your task is to provide a concise, user-friendly summary of inventory levels. Based on the user's request and the inventory data, generate a natural language message. Do not output any SQL code. Always list each product and its quantity. If a product has 0 quantity, clearly state '0 units'.\n\nUser's Original Question: '{user_query_nl}'\nSQL Query Used (for context, do not output this): '{generated_sql_manual}'\nInventory Details: '{formatted_results_string}'\n\nExample of desired output: 'There are 5 units of Arridx, 3 units of Degree, and 0 units of Mitchum left.'\n\nYour summary:"
+        prompt = f"As an inventory assistant, your task is to provide a concise, user-friendly summary of inventory levels. Based on the user's request and the inventory data, generate a natural language message. Do not output any SQL code. Always list each product and its quantity. If a product has 0 quantity, clearly state '0 units'.\n\nUser's Original Question: '{user_query}'\nSQL Query Used (for context, do not output this): '{sql_result}'\nInventory Details: '{formatted_results_string}'\n\nExample of desired output: 'There are 5 units of Arridx, 3 units of Degree, and 0 units of Mitchum left.'\n\nYour summary:"
 
         # print(f"\nSending to LLM for user-friendly message:")
 
@@ -137,7 +137,7 @@ def get_response(request_message:str) -> tuple[str, str]:
     prompt = get_llm_prompt(request_message)
     sql_query = get_sql_query_from_llm(prompt)
     query_result = execute_sql_query(sql_query)
-    response = format_response(query_result)
+    response = format_response(request_message, query_result)
     return str(uuid.uuid4()), f"Repsonse for {response}"
 
 def record_feedback(message_id:str, is_positive:bool) -> str:
