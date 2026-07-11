@@ -3,6 +3,14 @@ from components.sidebar import render_sidebar
 from pathlib import Path
 from constants import IMAGE_DIR
 
+import streamlit as st
+
+st.write("Before cv2")
+
+import cv2
+
+st.write(cv2.__version__)
+
 def render_page():
     # --- PAGE CONFIGURATION ---
     st.set_page_config(page_title="Inventory System", page_icon="📦", layout="wide")
