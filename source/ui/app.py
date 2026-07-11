@@ -1,5 +1,5 @@
 import streamlit as st
-import pages.ai_assistant as assistant
+import pages.home as home
 
 st.set_page_config(
     page_title="Inventory System",
@@ -7,4 +7,4 @@ st.set_page_config(
     layout="wide"
 )
 
-assistant.render_page()
+home.render_page()

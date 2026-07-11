@@ -1,152 +1,351 @@
 import streamlit as st
 import pandas as pd
+import constants as const
 from components.sidebar import render_sidebar
 import services.invertory_management_service as ims
 import services.image_processing_service as ips
+from PIL import Image
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 def initialize_session_state():
     # --- Initialize Persistent Variables ---
-    if "processed_counts" not in st.session_state:
-        st.session_state.processed_counts = None
+    if "show_image_dialog" not in st.session_state:
+        st.session_state.show_image_dialog = False
 
-    if "uploader_key_version" not in st.session_state:
-        st.session_state.uploader_key_version = 0
+    if "dialog_image" not in st.session_state:
+        st.session_state.dialog_image = None
 
-    if "boxed_image" not in st.session_state:
-        st.session_state.boxed_image = None
+    if "dialog_title" not in st.session_state:
+        st.session_state.dialog_title = ""
 
-def update_inventory():
-    # Update existing inventory
-    product_update_count = ims.update_inventory_for_products(st.session_state.processed_counts)
+    if "image_classifications" not in st.session_state:
+        st.session_state.image_classifications = None
 
-    missing_product_codes = [
-        product_code
-        for product_code in st.session_state.processed_counts["Product Code"]
-        if product_update_count.get(product_code, 0) == 0
-    ]
+    if "had_file" not in st.session_state:
+        st.session_state.had_file = False
 
-    if len(missing_product_codes) == 0:
-        st.session_state.success_message = "Inventory has been updated successfully"
-    else:
-        st.session_state.upload_shelf_image_warning_message = f"Product code(s) {",".join(missing_product_codes)} not found." 
+    if "update_status" not in st.session_state:
+        st.session_state.update_status = 0
 
-    # FORCE FULL CLEANUP: Reset variables & bump key version to destroy widget cache
-    st.session_state.processed_counts = None
-    st.session_state.uploader_key_version += 1
-    st.session_state.trigger_clean_rerun = True
-    st.session_state.boxed_image = None
+    if "file_upload_version" not in st.session_state:
+        st.session_state.file_upload_version = 0
+
+def reset_session_state():
+    st.session_state.file_selected = None
+    st.session_state.show_image_dialog = False
+    st.session_state.dialog_image = None
+    st.session_state.dialog_title = ""
+    st.session_state.image_classifications = None
+    st.session_state.had_file = False
+    st.session_state.file_upload_version += 1
+
+def render_styles():
+    st.markdown("""
+    <style>
+
+    .block-container{
+        padding-top:1.2rem;
+        padding-bottom:2rem;
+        max-width:1400px;
+    }
+
+    /* Card */
+    .card{
+        background:white;
+        border:1px solid #E5E7EB;
+        border-radius:12px;
+        padding:18px;
+        margin-bottom:18px;
+        box-shadow:0 1px 3px rgba(0,0,0,.08);
+    }
+
+    /* Section title */
+    .section-title{
+        font-size:20px;
+        font-weight:700;
+        margin-bottom:15px;
+    }
+
+    /* Image title */
+    .image-title{
+        font-size:18px;
+        font-weight:600;
+        margin-bottom:10px;
+    }
+
+    /* Expand icon */
+    .expand-icon{
+        float:right;
+        color:#6b7280;
+        font-size:22px;
+    }
+
+    /* Upload card spacing */
+    .upload-row{
+        padding-top:5px;
+    }
+
+    .product-chip{
+        border:1px solid #E5E7EB;
+        border-radius:12px;
+        padding:16px 10px;
+        text-align:center;
+        background:white;
+        transition:.2s;
+    }
+
+    .product-chip:hover{
+        border-color:#16a34a;
+        box-shadow:0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .product-name{
+        font-size:15px;
+        font-weight:600;
+    }
+
+    .product-count{
+        color:#16a34a;
+        font-size:28px;
+        font-weight:700;
+        margin-top:6px;
+    }
+
+    div.stButton > button {
+        background-color: #A4E9FF;
+        border-color: #A4E9FF;
+    }            
+
+    div.stButton > button:hover {
+        background-color: #A4E9FF;
+        border-color: #A4E9FF;
+    } 
+                
+    div.stButton > button p {
+        color: #1A1A1A;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def reset_screen():
+    reset_session_state()
+    st.rerun() 
+
+def render_images():
+    col1,col2 = st.columns(2)
+    with col1:
+        with st.container(border=True):
+            st.markdown(
+                "<div class='image-title'>Shelf Image</div>",
+                unsafe_allow_html=True
+            )
+            uploaded_file = st.file_uploader(
+                "",
+                type=["png","jpg","jpeg"],
+                key=f"file_selected{st.session_state.file_upload_version}"
+            )
+            if uploaded_file is None and st.session_state.had_file:
+                st.session_state.had_file = False
+                reset_screen()
+            if uploaded_file is not None:
+                if not st.session_state.had_file:
+                    st.session_state.had_file = True
+                st.image(
+                    uploaded_file,
+                    use_container_width=True
+                )
+    with col2:
+        if st.session_state.had_file:
+            with st.container(border=True):
+                st.markdown(
+                    "<div class='image-title'>Scanned Image</div>",
+                    unsafe_allow_html=True
+                )
+                st.markdown("")
+                st.markdown("")
+                if uploaded_file:
+                    st.button(
+                        "🔍 Scan Shelf Image",
+                        use_container_width=True,
+                        type="primary",
+                        key="process_image"
+                    )
+                    st.markdown("")
+                    if st.session_state.process_image:
+                        file_selected = st.session_state[f"file_selected{st.session_state.file_upload_version}"]
+                        # Trigger image calculation only if results are not stored yet
+                        if file_selected is not None and st.session_state.image_classifications is None:
+                            with st.spinner("Scanning shelf image..."):
+                                st.session_state.image_classifications = ips.classify_image(file_selected)
+                                st.rerun() # Refresh to populate layout grids smoothly
+                    if st.session_state.image_classifications is not None:
+                        try:
+                            annotated_img = Image.open(st.session_state.image_classifications.annotated_imagefullname)
+                        except:
+                            annotated_img = None
+                        if annotated_img is not None:
+                            st.image(
+                                annotated_img,
+                                use_container_width=True
+                            )
+
+def render_save_button():
+    if "image_classifications" in st.session_state and st.session_state.image_classifications is not None and st.session_state.image_classifications.item_details is not None:
+        if st.button("💾 Update Inventory", use_container_width=True):
+            with st.spinner("Updating the inventory..."):
+                try:
+                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details))
+                    st.session_state.update_status = 1
+                    reset_screen()
+                except Exception:
+                    st.session_state.update_status = 2
+    if "update_status" in st.session_state and st.session_state.update_status != 0:
+        if st.session_state.update_status == 1:
+            st.toast("Inventory updated successfully.", icon="✅")
+        elif st.session_state.update_status == 2:
+            st.toast("Inventory update failed.", icon="❌")
+        st.session_state.update_status = 0
+
+def render_product_by_class_section():
+
+    if "image_classifications" in st.session_state and st.session_state.image_classifications is not None:
+        data = pd.DataFrame(st.session_state.image_classifications.item_details)
+
+        if data is not None and not data.empty:
+            total_quantity = data[const.IMAGE_CLASSIFICATION_COLUMNS[2]].sum()
+            total_products = data[const.IMAGE_CLASSIFICATION_COLUMNS[0]].nunique()
+        
+            st.write("")
+        
+            if "selected_class" not in st.session_state:
+                st.session_state.selected_class = list(data)[0]
+            
+            st.subheader("Shelf Contents")
+            
+            section_left_col, section_right_col = st.columns(2)
+            with section_left_col:
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.metric(
+                        label="🏷️ Total Products",
+                        value=total_products
+                    )
+                    
+                with m2:
+                    st.metric(
+                        label="📦 Total Quantity",
+                        value=total_quantity
+                    )
+
+                gb = GridOptionsBuilder.from_dataframe(data)
+                gb.configure_default_column(
+                    sortable=True,
+                    filter=True,
+                    resizable=True,
+                )
+                gb.configure_selection(
+                    selection_mode="disabled",
+                    use_checkbox=False
+                )
+                gb.configure_grid_options(
+                    rowSelection="disabled",
+                    suppressRowClickSelection=False
+                )
+                
+                grid_response = AgGrid(
+                    data,
+                    gridOptions=gb.build(),
+                    fit_columns_on_grid_load=True,
+                    height=450
+                )
+
+                selected_rows = grid_response["selected_rows"]
+
+                if selected_rows is not None and len(selected_rows):
+                    st.session_state.selected_class = selected_rows.iloc[0][const.IMAGE_CLASSIFICATION_COLUMNS[0]]
+            
+            with section_right_col:
+                part_1, part_2 = st.columns([3,1])
+                with part_1:
+                    st.text("Product Code")
+                    selected_class = st.selectbox(
+                        "Select Product Code",
+                        data[const.IMAGE_CLASSIFICATION_COLUMNS[0]].tolist(),
+                        label_visibility="collapsed",
+                        key="selected_class"
+                    )
+                with part_2:
+                    quantity = data.loc[
+                        data[const.IMAGE_CLASSIFICATION_COLUMNS[0]] == selected_class,
+                        const.IMAGE_CLASSIFICATION_COLUMNS[2]
+                    ].iloc[0]
+                    st.metric("Quantity", quantity)
+
+                gallery = st.container(
+                    height=445,
+                    border=True
+                )
+
+                with gallery:
+                    images = []
+                    if st.session_state.image_classifications.class_imagefullnames is not None and selected_class in st.session_state.image_classifications.class_imagefullnames:
+                        images = st.session_state.image_classifications.class_imagefullnames[selected_class]
+                    COLS = 3
+                    index = 0
+                    for i in range(0, len(images), COLS):
+                        st.markdown(" ")
+                        st.markdown(" ")
+                        cols = st.columns(COLS)
+                        for col, img in zip(cols, images[i:i+COLS]):
+                            with col:
+                                try:
+                                    inner_col1, inner_col2 = st.columns([6,1])
+                                    with inner_col1:
+                                        image = Image.open(img)
+                                        st.image(
+                                            image,
+                                            use_container_width=True
+                                        )
+                                    # with inner_col2:
+                                    #     if st.button(
+                                    #         "⛶",
+                                    #         key=f"expand_{index}",
+                                    #         help="View full size"
+                                    #     ):
+                                    #         st.session_state.dialog_title = f"{st.session_state.selected_class} {index}"
+                                    #         st.session_state.dialog_image = image
+                                    #         show_image_dialog()
+                                except:
+                                    st.info("No Image")
+                        index += 1
 
 def render_page():
     # pass
     initialize_session_state()
     
     st.set_page_config(
-        page_title="Upload Shelf Image",
+        page_title="Update Inventory",
         page_icon="📷",
         layout="wide"
     )
 
     render_sidebar()
 
-    # Layout Containers
-    upload_photo_container = st.container()
-    product_count_grid_placeholder = st.container()
+    render_styles() 
 
-    # --- Clear State Rerun Interceptor ---
-    if st.session_state.get("trigger_clean_rerun", False):
-        st.session_state.trigger_clean_rerun = False
-        st.rerun()
+    #st.title("🛒 Product Detection & Classification")
+    col1, col2 = st.columns([1, 11])
+    with col1:
+        st.image(
+            str(const.IMAGE_DIR / "upload-shelf-image.png"), 
+            use_container_width=True
+        )
+    with col2:
+        st.header("Update Inventory")
 
-    # Display banner safely post-rerun
-    if "success_message" in st.session_state and st.session_state.success_message:
-        st.success(st.session_state.success_message)
-        del st.session_state["success_message"]
-    elif "upload_shelf_image_warning_message" in st.session_state and st.session_state.upload_shelf_image_warning_message:
-        st.warning(st.session_state.upload_shelf_image_warning_message)
-        del st.session_state["upload_shelf_image_warning_message"]
-
-    # --- Render Form Layout Natively ---
-    upload_photo_container.title("📷 Upload Shelf Photo")
-    upload_photo_container.write("Upload a shelf photo to update inventory.")
-
-    shelf_id = upload_photo_container.text_input(label="Shelf:", max_chars=30)
-
-    # Dynamic key rotation format string
-    active_uploader_key = f"shelf_photo_v{st.session_state.uploader_key_version}"
-
-    photo_uploaded = upload_photo_container.file_uploader(
-        "Choose the photo",
-        key=active_uploader_key,
-        type=["jpg", "jpeg", "png"]
-    )
-
-    # --- Inline Main Processing Track (Replaces on_change) ---
-    if photo_uploaded is not None:
-        # Trigger image calculation only if we don't have results stored yet
-        if st.session_state.processed_counts is None:
-            with st.spinner("Processing shelf image..."):
-                st.session_state.boxed_image, raw_counts = ips.get_product_counts_boxed_image(photo_uploaded)
-                if isinstance(raw_counts, dict):
-                    st.session_state.processed_counts = pd.DataFrame(
-                        list(raw_counts.items()), 
-                        columns=["Product Code", "New Stock"]
-                    )
-                else:
-                    st.session_state.processed_counts = raw_counts
-                st.session_state.processed_counts["Shelf Id"] = shelf_id
-                st.rerun() # Refresh to populate layout grids smoothly
-
-        with st.spinner("Displaying images and detections..."):
-            # Display components on screen safely
-            with upload_photo_container:
-                boxed_image = st.session_state.boxed_image
-                photo_column_sizes = [1, 1]
-                title_col1, title_col2 = upload_photo_container.columns(photo_column_sizes) 
-                title_col1.markdown("### Uploaded Image")
-                if boxed_image is not None: title_col2.markdown("### Product Detections")
-                image_col1, image_col2 = upload_photo_container.columns(photo_column_sizes)
-                image_col1.image(photo_uploaded, width="stretch")
-                if boxed_image is not None: image_col2.image(boxed_image, width="stretch")
-                
-            with product_count_grid_placeholder:
-                st.divider()
-                st.subheader("📝 Detected Products & Quantities")
-                
-                column_size = [5, 1, 1]
-
-                # Header
-                header_cols = st.columns(column_size)
-                header_cols[0].markdown("**Product Code**")
-                header_cols[1].markdown("**Detected Quantity**")
-                header_cols[2].markdown("**Corrected Quantity**")
-
-                # Rows
-                for idx, row in st.session_state.processed_counts.iterrows():
-                    cols = st.columns(column_size)
-                    p_code = row["Product Code"]
-                    d_stock = row["New Stock"]
-
-                    cols[0].write(p_code)
-                    cols[1].write(d_stock)
-                    c_stock = cols[2].number_input(
-                        label="corrected_stock",
-                        label_visibility="collapsed",
-                        min_value=0,
-                        value=d_stock,
-                        step=1,
-                        key=f"corrected_stock_{p_code}"
-                    )
-                    df = st.session_state.processed_counts
-                    df.loc[df["Product Code"] == p_code, "New Stock"] = c_stock
-
-                st.button(
-                    "Update Inventory",
-                    type="primary",
-                    on_click=update_inventory
-                )
-    elif "processed_counts" in st.session_state:
-        # If the user clicks the small close "X" manually on the widget, clear calculations
-        st.session_state.processed_counts = None
+    render_images()
+    render_product_by_class_section()  
+    render_save_button() 
 
 if __name__ == "__main__":
     render_page()
