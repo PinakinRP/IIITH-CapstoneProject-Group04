@@ -2,8 +2,8 @@ streamlit
 numpy
 pandas
 Pillow
-ultralytics
 opencv-python-headless
+ultralytics-opencv-headless
 torch
 torchvision
 SQLAlchemy
