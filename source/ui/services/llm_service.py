@@ -4,6 +4,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM, T5Tokenizer, T5ForConditionalGeneration
 import constants as const
 import sqlite3
+import torch
 
 @st.cache_resource
 def get_request_tokenizer():
