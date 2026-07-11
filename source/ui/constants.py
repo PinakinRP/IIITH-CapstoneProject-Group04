@@ -11,3 +11,4 @@ CLASS_IMAGE = f"{{}}_{{}}.{DEFAULT_IMAGE_FORMAT}"
 IMAGE_CLASSIFICATION_COLUMNS = ["Product Code", "Description", "Quantity"]
 INVENTORY_COLUMNS = ["Product Code", "Description", "Quantity"]
 TEMPLATE_IMAGE = WORK_DIR / f"template.{DEFAULT_IMAGE_FORMAT}"
+DB_FILE_PATH = ROOT_DIR / "data" / "inventory.db"
