@@ -20,4 +20,5 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push --force "https://pinakinrp:$HF_TOKEN@huggingface.co/spaces/pinakinrp/iiith-capstone-group-4" HEAD:main --subtree="source/ui"
+          git subtree split --prefix=source/ui -b deploy-branch
+          git push --force https://pinakinrp:$HF_TOKEN@huggingface.co/spaces/pinakinrp/iiith-capstone-group-4 deploy-branch:webapp-newui
