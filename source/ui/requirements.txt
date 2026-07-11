@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+pillow
+opencv-python-headless
+ultralytics
+torch
+openai
+sqlalchemy
+streamlit-aggrid
