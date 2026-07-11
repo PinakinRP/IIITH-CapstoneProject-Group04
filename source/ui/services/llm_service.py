@@ -138,7 +138,7 @@ def get_response(request_message:str) -> tuple[str, str]:
     sql_query = get_sql_query_from_llm(prompt)
     query_result = execute_sql_query(sql_query)
     response = format_response(request_message, query_result)
-    return str(uuid.uuid4()), f"Repsonse for {response}"
+    return str(uuid.uuid4()), response
 
 def record_feedback(message_id:str, is_positive:bool) -> str:
     if is_positive:
