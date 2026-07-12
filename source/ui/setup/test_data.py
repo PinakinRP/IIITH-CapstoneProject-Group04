@@ -1,7 +1,15 @@
 import sqlite3
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+import constants as const
 
 # Connect to the database
-conn = sqlite3.connect('inventory.db')
+conn = sqlite3.connect(const.DB_FILE_PATH)
 cursor = conn.cursor()
 
 # Query for 'Arridx' by joining Product and Inventory tables
