@@ -2,7 +2,7 @@ import streamlit as st
 import constants as const
 import streamlit.components.v1 as stc
 from components.sidebar import render_sidebar
-import services.llm_service as ls
+import services.llm_test_service as ls
 import uuid
 
 def render_chatbot():
@@ -34,7 +34,8 @@ def render_chatbot():
     .user-container {
         display: flex;
         justify-content: flex-end;
-        margin: 8px 0;
+        margin: 0;
+        padding: 0;
     }
 
     .user-message {
@@ -48,7 +49,8 @@ def render_chatbot():
     .assistant-container {
         display: flex;
         justify-content: flex-start;
-        margin: 8px 0;
+        margin: 0;
+        padding: 0;
     }
 
     .assistant-message {
@@ -77,6 +79,7 @@ def render_chatbot():
     /* Remove the space reserved for the avatar */
     [data-testid="stChatMessage"] {
         grid-template-columns: auto !important;
+        padding:
     }
 
     [data-testid="stChatMessageContent"] {
@@ -108,8 +111,9 @@ def render_chatbot():
     # ---------------- Chat history ----------------
     with st.container(height=390):
         for msg in st.session_state.messages:
+            last_message_role = msg["role"]
             # USER MESSAGE
-            if msg["role"] == "user":
+            if last_message_role == "user":
                 with st.chat_message("user", avatar=None):
                     st.markdown(f"""
                         <div class="user-container">
@@ -131,43 +135,53 @@ def render_chatbot():
                             <div class="assistant-message">{msg["content"]}</div>
                         </div>
                     """, unsafe_allow_html=True)
+        if last_message_role == "user" and "user_prompt" in st.session_state and st.session_state.user_prompt is not None:
+            with st.chat_message("assistant", avatar=None):
+                placeholder = st.empty()
+                # Temporary message
+                placeholder.markdown("""
+                    <div class="assistant-container">
+                        <b>Assistant</b>
+                    </div>
+                    📚<i>Gathering information...</i>
+                """, unsafe_allow_html=True)
+                message_id, response_message = ls.get_response(st.session_state.user_prompt)
+                st.session_state.messages.append({
+                    "id": message_id,
+                    "role": "assistant",
+                    "content": response_message
+                })
+                st.session_state.user_prompt = None
+                st.rerun()
 
-                # ---------------- Feedback UI ----------------
-                if "id" in msg:
-                    msg_id = msg["id"]
+    # ---------------- Feedback UI ----------------
+    if "id" in msg:
+        msg_id = msg["id"]
 
-                    # If feedback already given → show message instead of buttons
-                    if msg_id in st.session_state.feedback:
-                        if st.session_state.feedback[msg_id] != "":
-                            st.info(st.session_state.feedback[msg_id])
+        # If feedback already given → show message instead of buttons
+        if msg_id in st.session_state.feedback:
+            if st.session_state.feedback[msg_id] != "":
+                st.info(st.session_state.feedback[msg_id])
 
-                    else:
-                        col1, col2, *_ = st.columns(10)
+        else:
+            col1, col2 = st.columns([1,9])
 
-                        with col1:
-                            if st.button("👍 Helpful", key=f"up_{msg_id}"):
-                                st.session_state.feedback[msg_id] = ls.record_feedback(msg_id, True)
-                                st.rerun()
+            with col1:
+                if st.button("👍 Helpful", key=f"up_{msg_id}"):
+                    st.session_state.feedback[msg_id] = ls.record_feedback(msg_id, True)
+                    st.rerun()
 
-                        with col2:
-                            if st.button("👎 Not helpful", key=f"down_{msg_id}"):
-                                st.session_state.feedback[msg_id] = ls.record_feedback(msg_id, False)
-                                st.rerun()
+            with col2:
+                if st.button("👎 Not helpful", key=f"down_{msg_id}"):
+                    st.session_state.feedback[msg_id] = ls.record_feedback(msg_id, False)
+                    st.rerun()
 
     # ---------------- Input ----------------
     if prompt := st.chat_input("Ask something..."):
-
+        st.session_state.user_prompt = prompt
         st.session_state.messages.append({
             "role": "user",
             "content": prompt
-        })
-
-        message_id, response_message = ls.get_response(prompt)
-
-        st.session_state.messages.append({
-            "id": message_id,
-            "role": "assistant",
-            "content": response_message
         })
 
         st.rerun()
