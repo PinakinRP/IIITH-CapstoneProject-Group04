@@ -2,7 +2,7 @@ import streamlit as st
 import constants as const
 import streamlit.components.v1 as stc
 from components.sidebar import render_sidebar
-import services.llm_test_service as ls
+import services.llm_service as ls
 import uuid
 
 def render_chatbot():
