@@ -10,3 +10,4 @@ SQLAlchemy
 streamlit-aggrid
 openai
 transformers
+chromadb

@@ -12,3 +12,10 @@ IMAGE_CLASSIFICATION_COLUMNS = ["Product Code", "Description", "Quantity"]
 INVENTORY_COLUMNS = ["Product Code", "Description", "Quantity"]
 TEMPLATE_IMAGE = WORK_DIR / f"template.{DEFAULT_IMAGE_FORMAT}"
 DB_FILE_PATH = ROOT_DIR / "data" / "inventory.db"
+
+# --- Configuration ---
+CHROMA_PATH = ROOT_DIR / "data" / "chroma_db"
+CSV_ANNOTS_PATH = ROOT_DIR / "models" / "annotations_train.csv" 
+CLASS_NAMES_PATH = ROOT_DIR / "models" / "class_names.csv"
+WEIGHTS_PATH = ROOT_DIR / "models" / "simclr_backbone.pth" 
+

@@ -3,6 +3,7 @@
 1. Streamlit Python Package
 1. streamlit-aggrid
 1. transformers
+1. chromadb
 
 # Run the application
 Run command ```streamlit run app.py``` on console.

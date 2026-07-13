@@ -176,7 +176,7 @@ def render_images():
                         # Trigger image calculation only if results are not stored yet
                         if file_selected is not None and st.session_state.image_classifications is None:
                             with st.spinner("Scanning shelf image..."):
-                                st.session_state.image_classifications = ips.classify_image(file_selected)
+                                st.session_state.image_classifications = ips.classify_image(file_selected, file_selected.name)
                                 st.rerun() # Refresh to populate layout grids smoothly
                     if st.session_state.image_classifications is not None:
                         try:
