@@ -1,0 +1,121 @@
+/* Remove default top spacing */
+
+.block-container{
+    padding-top:0.4rem;
+    padding-bottom:0rem;
+}
+
+/* ---------------- HEADER ---------------- */
+
+.header{
+
+    position:sticky;
+
+    top:0;
+
+    z-index:999;
+
+    background:#111827;
+
+    padding:18px;
+
+    border-radius:10px;
+
+    margin-bottom:12px;
+
+}
+
+.header-title{
+
+    color:white;
+
+    font-size:26px;
+
+    font-weight:700;
+
+}
+
+/* ---------------- CHAT ---------------- */
+
+[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stVerticalBlockBorderWrapper"])
+{
+    border-radius:10px;
+}
+
+/* ---------------- FOOTER ---------------- */
+
+.footer-space{
+
+    height:15px;
+
+}
+
+.footer{
+
+    position:sticky;
+
+    bottom:0;
+
+    background:white;
+
+    height:2px;
+
+}
+
+.assistant-title{
+
+    font-weight:700;
+    color:#d8d8d8;
+    margin-top:18px;
+    margin-bottom:8px;
+}
+
+.user-title{
+
+    font-weight:700;
+    text-align:right;
+    color:#d8d8d8;
+    margin-top:18px;
+    margin-bottom:8px;
+}
+
+
+.assistant-bubble{
+
+    background:#f4f4f4;
+
+    color:black;
+
+    border-radius:18px;
+
+    padding:14px 18px;
+
+    display:inline-block;
+
+    max-width:100%;
+
+    word-break:break-word;
+
+    margin-bottom:10px;
+}
+
+.user-bubble{
+
+    background:#dff6c9;
+
+    color:black;
+
+    border-radius:18px;
+
+    padding:14px 18px;
+
+    display:inline-block;
+
+    float:right;
+
+    max-width:100%;
+
+    word-break:break-word;
+
+    margin-bottom:10px;
+}
