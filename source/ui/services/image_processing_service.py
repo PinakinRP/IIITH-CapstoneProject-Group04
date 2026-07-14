@@ -316,8 +316,6 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
             if class_name not in result.class_imagefullnames:
                 result.class_imagefullnames[class_name] = []
             result.class_imagefullnames[class_name].append(filename)'''
-            result.class_imagefullnames[class_name].append(filename)'''
-
     return result
 
 def generate_planogram_report() -> PlanogramReport:
