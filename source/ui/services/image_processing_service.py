@@ -257,6 +257,17 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
     result.annotated_imagefullname = const.ANNOTATED_IMAGE
     result.item_details = []
 
+    if df_display_table is not None and not df_display_table.empty:
+        for _, row in df_display_table.iterrows():
+            dict_data = {
+                const.IMAGE_CLASSIFICATION_COLUMNS[0]: row['Class ID'],
+                const.IMAGE_CLASSIFICATION_COLUMNS[1]: row['Class Name'],
+                const.IMAGE_CLASSIFICATION_COLUMNS[2]: row['Product Count']
+            }
+            result.item_details.append(dict_data)
+        result.class_imagefullnames = dict(zip(df_display_table['Class ID'], df_display_table['Class Name']))
+        
+
     '''yolo_model = YOLO("yolo26s.pt")
     yolo_results = yolo_model(image)
 
@@ -304,6 +315,7 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
 
             if class_name not in result.class_imagefullnames:
                 result.class_imagefullnames[class_name] = []
+            result.class_imagefullnames[class_name].append(filename)'''
             result.class_imagefullnames[class_name].append(filename)'''
 
     return result
