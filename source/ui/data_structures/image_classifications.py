@@ -1,12 +1,12 @@
+from io import BytesIO
+
 class ImageClassifications():
-    original_imagefullname: str
-    annotated_imagefullname: str
+    annotated_image: BytesIO
     item_details: list[dict]
-    class_imagefullnames: dict
+    class_images: dict
     
     def __init__(self):
-        self.original_imagefullname = None
-        self.annotated_imagefullname = None
+        self.annotated_image = None
         self.item_details = []
-        self.class_imagefullnames = {}
+        self.class_images = {}
 

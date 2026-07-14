@@ -179,25 +179,24 @@ def render_images():
                                 st.session_state.image_classifications = ips.classify_image(file_selected, file_selected.name)
                                 st.rerun() # Refresh to populate layout grids smoothly
                     if st.session_state.image_classifications is not None:
-                        try:
-                            annotated_img = Image.open(st.session_state.image_classifications.annotated_imagefullname)
-                        except:
-                            annotated_img = None
-                        if annotated_img is not None:
+                        if st.session_state.image_classifications.annotated_image is not None:
                             st.image(
-                                annotated_img,
+                                st.session_state.image_classifications.annotated_image,
                                 use_container_width=True
                             )
+                        else:
+                            st.warning("Annotated image is not generated")
 
 def render_save_button():
     if "image_classifications" in st.session_state and st.session_state.image_classifications is not None and st.session_state.image_classifications.item_details is not None:
         if st.button("💾 Update Inventory", use_container_width=True):
             with st.spinner("Updating the inventory..."):
                 try:
-                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details))
+                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details), add=True)
                     st.session_state.update_status = 1
                     reset_screen()
-                except Exception:
+                except Exception as ex:
+                    print(f"ERROR: {ex}")
                     st.session_state.update_status = 2
     if "update_status" in st.session_state and st.session_state.update_status != 0:
         if st.session_state.update_status == 1:
@@ -288,8 +287,8 @@ def render_product_by_class_section():
 
                 with gallery:
                     images = []
-                    if st.session_state.image_classifications.class_imagefullnames is not None and selected_class in st.session_state.image_classifications.class_imagefullnames:
-                        images = st.session_state.image_classifications.class_imagefullnames[selected_class]
+                    if st.session_state.image_classifications.class_images is not None and selected_class in st.session_state.image_classifications.class_images:
+                        images = st.session_state.image_classifications.class_images[selected_class]
                     COLS = 3
                     index = 0
                     for i in range(0, len(images), COLS):
@@ -301,9 +300,9 @@ def render_product_by_class_section():
                                 try:
                                     inner_col1, inner_col2 = st.columns([6,1])
                                     with inner_col1:
-                                        image = Image.open(img)
+                                        #image = Image.open(img)
                                         st.image(
-                                            image,
+                                            img,
                                             use_container_width=True
                                         )
                                     # with inner_col2:

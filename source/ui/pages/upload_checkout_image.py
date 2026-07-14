@@ -175,18 +175,16 @@ def render_images():
                         # Trigger image calculation only if results are not stored yet
                         if file_selected is not None and st.session_state.image_classifications is None:
                             with st.spinner("Scanning checkout counter image..."):
-                                st.session_state.image_classifications = ips.classify_image(file_selected)
+                                st.session_state.image_classifications = ips.classify_image(file_selected, file_selected.name)
                                 st.rerun() # Refresh to populate layout grids smoothly
                     if st.session_state.image_classifications is not None:
-                        try:
-                            annotated_img = Image.open(st.session_state.image_classifications.annotated_imagefullname)
-                        except:
-                            annotated_img = None
-                        if annotated_img is not None:
+                        if st.session_state.image_classifications.annotated_image is not None:
                             st.image(
-                                annotated_img,
+                                st.session_state.image_classifications.annotated_image,
                                 use_container_width=True
                             )
+                        else:
+                            st.warning("No annotated image generated")
 
 def render_product_by_class_section():
 
@@ -249,10 +247,11 @@ def render_save_button():
         if st.button("💾 Update Inventory", use_container_width=True):
             with st.spinner("Updating the inventory..."):
                 try:
-                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details))
+                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details), add=False)
                     st.session_state.update_status = 1
                     reset_screen()
-                except Exception:
+                except Exception as ex:
+                    print(ex)
                     st.session_state.update_status = 2
     if "update_status" in st.session_state and st.session_state.update_status != 0:
         if st.session_state.update_status == 1:

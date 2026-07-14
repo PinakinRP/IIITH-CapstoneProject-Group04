@@ -2,6 +2,7 @@ import streamlit as st
 from io import BytesIO
 import pandas as pd
 import constants as const
+import sqlite3
 
 # ------------------------------------------------------------------
 # Sample Product Data
@@ -51,23 +52,21 @@ def delete_product(product_code:str):
     else:
         return 0
 
-def update_inventory(df_image_classification: pd.DataFrame) -> dict:
-    update_count = {}
-    for idx, row in df_image_classification.iterrows():
-        sku = row[const.IMAGE_CLASSIFICATION_COLUMNS[0]]
-        new_stock = row[const.IMAGE_CLASSIFICATION_COLUMNS[2]]
-        
-        # Locate the product row in master database state
-        mask = (
-            st.session_state.products[const.INVENTORY_COLUMNS[0]]
-            .astype(str)
-            .str.strip()
-            .str.casefold()
-            == str(sku).strip().casefold()
-        )
-        
-        # Overwrite the stock value safely
-        st.session_state.products.loc[mask, const.INVENTORY_COLUMNS[2]] = new_stock
+def update_inventory(df_image_classification: pd.DataFrame, replace:bool):
 
-        update_count[sku] = mask.sum()
-    return update_count
+    rows = list(df_image_classification.itertuples(index=False, name=None))
+    conn = sqlite3.connect(const.DB_FILE_PATH)
+    conn.executemany(f"""
+        INSERT INTO Product (
+            product_code,
+            product_name,
+            quantity
+        )
+        VALUES (?, ?, ?)
+        ON CONFLICT(product_code)
+        DO UPDATE SET
+            product_name = excluded.product_name,
+            quantity = {'' if replace else 'quantity - '}excluded.quantity
+    """, rows)
+
+    conn.commit()

@@ -223,8 +223,6 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
                     
                     if not df_test_crops_streamlit.empty:
                         annotated_image = draw_boxes_on_image(original_image_pil, df_test_crops_streamlit, df_classnames)
-                        # Convert PIL Image to BytesIO
-                        annotated_image.save(const.ANNOTATED_IMAGE, format=const.DEFAULT_IMAGE_FORMAT)
                     
                         df_display_table = pd.merge(
                                 df_test_crops_streamlit.groupby('predicted_class_id').size().reset_index(name='Product Count'),
@@ -254,7 +252,7 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
             
     #model over
     #*************************
-    result.annotated_imagefullname = const.ANNOTATED_IMAGE
+    result.annotated_image = annotated_image
     result.item_details = []
 
     if df_display_table is not None and not df_display_table.empty:
@@ -265,7 +263,13 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
                 const.IMAGE_CLASSIFICATION_COLUMNS[2]: row['Product Count']
             }
             result.item_details.append(dict_data)
-        result.class_imagefullnames = dict(zip(df_display_table['Class ID'], df_display_table['Class Name']))
+
+    if df_test_crops_streamlit is not None and not df_test_crops_streamlit.empty:
+        result.class_images = (
+            df_test_crops_streamlit.groupby('predicted_class_id')['crop_pil']
+            .apply(list)
+            .to_dict()
+        )
         
 
     '''yolo_model = YOLO("yolo26s.pt")
@@ -313,9 +317,9 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
             filename = const.WORK_DIR / const.CLASS_IMAGE.format(class_name, item_detail[const.IMAGE_CLASSIFICATION_COLUMNS[2]])
             cropped.save(filename)
 
-            if class_name not in result.class_imagefullnames:
-                result.class_imagefullnames[class_name] = []
-            result.class_imagefullnames[class_name].append(filename)'''
+            if class_name not in result.class_images:
+                result.class_images[class_name] = []
+            result.class_images[class_name].append(filename)'''
     return result
 
 def generate_planogram_report() -> PlanogramReport:
