@@ -5,10 +5,6 @@ from ultralytics import YOLO
 from data_structures.image_classifications import ImageClassifications
 from data_structures.planogram_report import PlanogramReport
 import os
-#import trace_service as trace
-
-#change include these main pip install place
-#!pip -q install chromadb
 
 import pandas as pd
 import numpy as np
@@ -19,10 +15,10 @@ import torchvision.transforms as transforms
 from torchvision.models import resnet50
 import chromadb
 import cv2
+import streamlit as st
 
-#include this unzip along with other
-#!unzip -q chroma_db.zip -d chroma_db/
 
+@st.cache_data(show_spinner=False)
 def load_class_names():
     if os.path.exists(const.CLASS_NAMES_PATH):
         df = pd.read_csv(const.CLASS_NAMES_PATH)
@@ -34,6 +30,7 @@ def write_trace(trace_message:str, is_warning:bool = False):
     message = trace_message if not is_warning else f"WARNING: {trace_message}"
     print(message)
 
+@st.cache_data(show_spinner=False)
 def load_annotations():
     if os.path.exists(const.CSV_ANNOTS_PATH):
         df = pd.read_csv(const.CSV_ANNOTS_PATH)
@@ -41,6 +38,7 @@ def load_annotations():
     else:
         raise Exception(f"Annotations file not found at {const.CSV_ANNOTS_PATH}")
 
+@st.cache_resource(show_spinner=False)
 def get_chroma_collection():
     client = chromadb.PersistentClient(path=const.CHROMA_PATH)
     try:
@@ -80,6 +78,8 @@ def process_crops_for_streamlit(uploaded_image_pil, df_annotations_for_this_imag
             raise Exception(f"Error processing crop {idx} from {const.ORIGINAL_IMAGE}: {e}")
     return pd.DataFrame(crop_data)
 
+
+@st.cache_resource(show_spinner=False)
 def load_model_and_transforms():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -233,10 +233,6 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
                             )
                         df_display_table = df_display_table[['cluster_id', 'cluster_name', 'Product Count']]
                         df_display_table.columns = ['Class ID', 'Class Name', 'Product Count']
-                    
-                        #*****************************
-                        #this is how you display df in st
-                        #st.dataframe(df_display_table)
                     else:
                         write_trace("No product classifications were obtained. This might indicate that no matching products were found or the products are unknown.", True)
                 else:
@@ -250,8 +246,6 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
         else:
             write_trace("Image is unidentified / Not known to model.", True)
             
-    #model over
-    #*************************
     result.annotated_image = annotated_image
     result.item_details = []
 

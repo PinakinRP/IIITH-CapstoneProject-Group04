@@ -192,7 +192,7 @@ def render_save_button():
         if st.button("💾 Update Inventory", use_container_width=True):
             with st.spinner("Updating the inventory..."):
                 try:
-                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details), add=True)
+                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details), replace=True)
                     st.session_state.update_status = 1
                     reset_screen()
                 except Exception as ex:
