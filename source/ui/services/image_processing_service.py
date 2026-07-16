@@ -198,7 +198,7 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
             df_test_crops_streamlit = df_test_crops_streamlit.dropna(subset=['embeddings'])
             
             if not df_test_crops_streamlit.empty and collection is not None:
-                Logger.info("Classfying the products...")
+                Logger.info("Classifying the products...")
                 # Ensure embeddings are in correct format for query
                 query_embeddings_for_db = [emb for emb in df_test_crops_streamlit['embeddings'] if emb is not None]
 
