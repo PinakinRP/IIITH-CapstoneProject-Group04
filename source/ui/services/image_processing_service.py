@@ -16,7 +16,7 @@ from torchvision.models import resnet50
 import chromadb
 import cv2
 import streamlit as st
-
+from services.logging_service import Logger
 
 @st.cache_data(show_spinner=False)
 def load_class_names():
@@ -89,7 +89,7 @@ def load_model_and_transforms():
     if os.path.exists(const.WEIGHTS_PATH):
         try:
             encoder_model.load_state_dict(torch.load(const.WEIGHTS_PATH, map_location=device))
-            write_trace(f"Loaded custom weights") #from {WEIGHTS_PATH}")
+            Logger.info(f"Loaded custom weights") #from {WEIGHTS_PATH}")
         except Exception as e:
             raise Exception(f"Error loading model weights: {e}. Using baseline weights.")
     else:
@@ -177,9 +177,9 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
         
         if not df_test_crops_streamlit.empty:
             #display st msg
-            write_trace(f"Extracted {len(df_test_crops_streamlit)} product crops.")
+            Logger.info(f"Extracted {len(df_test_crops_streamlit)} product crops.")
             # Step 2: recognizing the extracted crops
-            write_trace("Analysing the products...")
+            Logger.info("Analysing the products...")
             encoder, inference_transform, device = load_model_and_transforms()
             embeddings_test_list = []
             for _, row in df_test_crops_streamlit.iterrows():
@@ -198,7 +198,7 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
             df_test_crops_streamlit = df_test_crops_streamlit.dropna(subset=['embeddings'])
             
             if not df_test_crops_streamlit.empty and collection is not None:
-                write_trace("Classfying the products...")
+                Logger.info("Classfying the products...")
                 # Ensure embeddings are in correct format for query
                 query_embeddings_for_db = [emb for emb in df_test_crops_streamlit['embeddings'] if emb is not None]
 
@@ -234,17 +234,17 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
                         df_display_table = df_display_table[['cluster_id', 'cluster_name', 'Product Count']]
                         df_display_table.columns = ['Class ID', 'Class Name', 'Product Count']
                     else:
-                        write_trace("No product classifications were obtained. This might indicate that no matching products were found or the products are unknown.", True)
+                        Logger.info("No product classifications were obtained. This might indicate that no matching products were found or the products are unknown.", True)
                 else:
-                    write_trace("Products are not recognized.", True)
+                    Logger.info("Products are not recognized.", True)
                 
             else:
                 if collection is None:
                     raise Exception("Database is not available. Please check the DB setup.")
                 else:
-                    write_trace("No products are recognized from the image.", True)
+                    Logger.info("No products are recognized from the image.", True)
         else:
-            write_trace("Image is unidentified / Not known to model.", True)
+            Logger.info("Image is unidentified / Not known to model.", True)
             
     result.annotated_image = annotated_image
     result.item_details = []

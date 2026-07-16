@@ -11,6 +11,7 @@ IMAGE_CLASSIFICATION_COLUMNS = ["Product Code", "Description", "Quantity"]
 INVENTORY_COLUMNS = ["Product Code", "Description", "Quantity"]
 TEMPLATE_IMAGE = WORK_DIR / f"template.{DEFAULT_IMAGE_FORMAT}"
 DB_FILE_PATH = ROOT_DIR / "data" / "inventory.db"
+LOGGING_FILE = WORK_DIR / "app.log"
 
 # --- Configuration ---
 CHROMA_PATH = ROOT_DIR / "data" / "chroma_db"

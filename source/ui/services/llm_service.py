@@ -25,6 +25,7 @@ def get_response_model():
 def format_response(user_query, sql_result):
     message_tokenizer = get_response_tokenizer()
     message_model = get_response_model()
+    user_friendly_message = None
 
     if sql_result:
         product_summaries = []
