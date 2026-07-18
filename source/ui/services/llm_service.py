@@ -26,7 +26,7 @@ def get_response_model():
 
 def format_response(sql_result, sql_query):
     user_friendly_message = None
-    Logger.info("Generated Sql Query : %s", sql_query)
+    Logger.info(f"Generated Sql Query : {sql_query}")
     if sql_result:
         # 1. Parse sql_query to get selected columns
         select_match = re.search(r'SELECT\s+(.*?)\s+FROM', sql_query, re.IGNORECASE)
@@ -34,7 +34,7 @@ def format_response(sql_result, sql_query):
         if select_match:
             selected_columns_raw = [col.strip() for col in select_match.group(1).split(',')]
         
-        Logger.info("Selected Columns : %s", selected_columns_raw)
+        Logger.info(f"Selected Columns : {', '.join(selected_columns_raw)}")
         # Clean up column names (remove aliases like P., and 'AS alias')
         cleaned_selected_columns = []
         for col in selected_columns_raw:
@@ -42,7 +42,7 @@ def format_response(sql_result, sql_query):
             clean_col = clean_col.split(' AS ')[0].strip() # Remove 'AS alias' if present
             cleaned_selected_columns.append(clean_col)
         
-        Logger.info("Clean Columns : %s", cleaned_selected_columns)
+        Logger.info(f"Clean Columns : {', '.join(cleaned_selected_columns)}")
         user_friendly_message = ""
         message_parts = []
 
@@ -74,7 +74,7 @@ def format_response(sql_result, sql_query):
                 # Fallback for any other combination
                 message_parts.append(", ".join([f"{k}: {v}" for k, v in row_data.items()]))
 
-        Logger.info("Msg parts : %s", message_parts)
+        Logger.info(f"Msg parts : {', '.join(message_parts)}")
         # Assemble the final user-friendly message based on the detected combination
         if 'quantity < threshold' in sql_query.lower():
             user_friendly_message = f"The following items are below threshold: {', '.join(message_parts)}."
