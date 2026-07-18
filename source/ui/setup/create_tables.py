@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS Product (
     product_name TEXT NOT NULL,
     product_category TEXT NULL,
     threshold INTEGER DEFAULT 3,
-    quantity INTEGER DEFAULT 0
+    quantity INTEGER DEFAULT 0,
+    unit_price FLOAT DEFAULT 0 
 );
 """
 cursor.execute(create_product_table_sql)
