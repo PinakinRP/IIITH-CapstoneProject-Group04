@@ -26,7 +26,7 @@ def get_response_model():
 def format_response(user_query, sql_result, sql_query):
     user_friendly_message = None
     if sql_result:
-        # 1. Parse generated_sql_manual to get selected columns
+        # 1. Parse sql_query to get selected columns
         select_match = re.search(r'SELECT\s+(.*?)\s+FROM', sql_query, re.IGNORECASE)
         selected_columns_raw = []
         if select_match:
@@ -71,9 +71,9 @@ def format_response(user_query, sql_result, sql_query):
                 message_parts.append(", ".join([f"{k}: {v}" for k, v in row_data.items()]))
 
         # Assemble the final user-friendly message based on the detected combination
-        if 'quantity < threshold' in generated_sql_manual or 'quantity < threshold' in generated_sql_manual.lower():
+        if 'quantity < threshold' in sql_query.lower():
             user_friendly_message = f"The following items are below threshold: {', '.join(message_parts)}."
-        elif 'quantity > threshold' in generated_sql_manual or 'quantity > threshold' in generated_sql_manual.lower():
+        elif 'quantity > threshold' in sql_query.lower():
             user_friendly_message = f"The following items are above threshold: {', '.join(message_parts)}."
         elif has_product_name and has_quantity and has_product_category:
             user_friendly_message = f"We have {', '.join(message_parts)} in the inventory."
