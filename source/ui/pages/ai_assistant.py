@@ -31,80 +31,80 @@ def render_chatbot():
     # ---------------- CSS ----------------
     st.markdown("""
     <style>
-    .user-container {
-        display: flex;
-        justify-content: flex-end;
-        margin: 0;
-        padding: 0;
-    }
+        .user-container {
+            display: flex;
+            justify-content: flex-end;
+            margin: 0;
+            padding: 0;
+        }
 
-    .user-message {
-        background-color: #DCF8C6;
-        color: black;
-        padding: 10px 14px;
-        border-radius: 12px;
-        max-width: 70%;
-    }
+        .user-message {
+            background-color: #DCF8C6;
+            color: black;
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 70%;
+        }
 
-    .assistant-container {
-        display: flex;
-        justify-content: flex-start;
-        margin: 0;
-        padding: 0;
-    }
+        .assistant-container {
+            display: flex;
+            justify-content: flex-start;
+            margin: 0;
+            padding: 0;
+        }
 
-    .assistant-message {
-        background-color: #F1F3F4;
-        color: black;
-        padding: 10px 14px;
-        border-radius: 12px;
-        max-width: 70%;
-    }
-                
-    /* Background of message cell */
-    [data-testid="stChatMessage"] {
-        background-color: transparent !important;
-    }
-                            
-    /* Hide the avatar */
-    [data-testid="stChatMessageAvatarAssistant"] {
-        display: none;
-    }
+        .assistant-message {
+            background-color: #F1F3F4;
+            color: black;
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 70%;
+        }
+                    
+        /* Background of message cell */
+        [data-testid="stChatMessage"] {
+            background-color: transparent !important;
+        }
+                                
+        /* Hide the avatar */
+        [data-testid="stChatMessageAvatarAssistant"] {
+            display: none;
+        }
 
-    /* Hide the avatar */
-    [data-testid="stChatMessageAvatarUser"] {
-        display: none;
-    }
-                
-    /* Remove the space reserved for the avatar */
-    [data-testid="stChatMessage"] {
-        grid-template-columns: auto !important;
-        padding:
-    }
+        /* Hide the avatar */
+        [data-testid="stChatMessageAvatarUser"] {
+            display: none;
+        }
+                    
+        /* Remove the space reserved for the avatar */
+        [data-testid="stChatMessage"] {
+            grid-template-columns: auto !important;
+            padding:
+        }
 
-    [data-testid="stChatMessageContent"] {
-        margin-left: 0 !important;
-    }
-                
-    div.stButton {
-        width: auto !important;
-        margin: 0 !important;
-    }
+        [data-testid="stChatMessageContent"] {
+            margin-left: 0 !important;
+        }
+                    
+        div.stButton {
+            width: auto !important;
+            margin: 0 !important;
+        }
 
-    div.stButton > button {
-        padding: 0 !important;
-        min-width: 0 !important;
-        border: none !important;
-        background: transparent !important;
-        font-size: 10px !important;
-        line-height: 1 !important;
-        box-shadow: none !important;
-    }
+        div.stButton > button {
+            padding: 0 !important;
+            min-width: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            font-size: 10px !important;
+            line-height: 1 !important;
+            box-shadow: none !important;
+        }
 
-    div.stButton > button:hover {
-        transform: scale(1.15);
-        background: transparent !important;
-    }
+        div.stButton > button:hover {
+            transform: scale(1.15);
+            background: transparent !important;
+        }
     </style>
     """, unsafe_allow_html=True)
 

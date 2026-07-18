@@ -11,46 +11,45 @@ import sqlite3
 if "products" not in st.session_state:
     st.session_state.products = pd.DataFrame(columns=const.INVENTORY_COLUMNS)
 
-def get_products(search_value):
-    products = st.session_state.products
-    if search_value.strip():
-        result = products[
-            products[const.INVENTORY_COLUMNS[0]].str.contains(search_value, case=False, na=False)
-            |
-            products[const.INVENTORY_COLUMNS[1]].str.contains(search_value, case=False, na=False)
-        ]
-    else:
-        result = None
-    return result
+def search_products(search_text:str) -> pd.DataFrame:
+    conn = sqlite3.connect(const.DB_FILE_PATH)
+    query = """
+        SELECT *
+        FROM Product
+        WHERE product_code LIKE ?
+           OR product_name LIKE ?
+        ORDER BY product_name;
+    """
+    search = search_text
+    return pd.read_sql_query(
+        query,
+        conn,
+        params=(search, search)
+    )
 
-def add_product(p_code:str, p_name:str, p_stock:int) -> tuple[bool, str]:
-    if not p_code or not p_code.strip():
-        return False, f"{const.INVENTORY_COLUMNS[0]} required"
-    if not p_name or not p_name.strip():
-        return False, f"{const.INVENTORY_COLUMNS[1]} required"
-    if p_stock < 0:
-        return False, "Stock cannot be negative"
-    
-    df = st.session_state.products
+def update_products(product_data:pd.DataFrame):
+    conn = sqlite3.connect(const.DB_FILE_PATH)
+    sql = """
+        UPDATE Product
+        SET
+            product_category = ?,
+            threshold = ?,
+            unit_price = ?
+        WHERE product_code = ?
+    """
 
-    if p_code in df[const.INVENTORY_COLUMNS[0]].values:
-        return False, "Product code already present. Search the product and then update it."
-    elif p_name in df[const.INVENTORY_COLUMNS[1]].values:
-        return False, "Product name already present. Search the product and then update it."
-    else:
-        # Insert a new row (fill missing columns with defaults or None)
-        new_row = {const.INVENTORY_COLUMNS[0]: p_code.strip(), const.INVENTORY_COLUMNS[1]: p_name.strip(), const.INVENTORY_COLUMNS[2]: p_stock}
-        st.session_state.products = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        return True, "Product added"
+    data = [
+        (
+            row.product_category,
+            row.threshold,
+            row.unit_price,
+            row.product_code,
+        )
+        for row in product_data.itertuples(index=False)
+    ]
 
-def delete_product(product_code:str):
-    if product_code != None:
-        st.session_state.products = st.session_state.products[
-            st.session_state.products[const.INVENTORY_COLUMNS[0]] != product_code
-        ]
-        return 1
-    else:
-        return 0
+    conn.executemany(sql, data)
+    conn.commit()
 
 def update_inventory(df_image_classification: pd.DataFrame, replace:bool):
 

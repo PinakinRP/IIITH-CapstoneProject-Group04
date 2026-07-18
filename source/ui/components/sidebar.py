@@ -17,4 +17,5 @@ def render_sidebar():
     st.sidebar.page_link("pages/upload_shelf_image.py", label="📷 Update Inventory")
     st.sidebar.page_link("pages/planogram_compliance.py", label="🧩 Check Planogram Compliance")
     st.sidebar.page_link("pages/upload_checkout_image.py", label="🛒 Checkout Items")
+    st.sidebar.page_link("pages/manage_products.py", label="🛍️ Product Setup")
     st.sidebar.page_link("pages/app_logs.py", label="📋 Application Log")
