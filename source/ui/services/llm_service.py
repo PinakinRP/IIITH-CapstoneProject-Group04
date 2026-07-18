@@ -40,6 +40,8 @@ def format_response(sql_result, sql_query):
         for col in selected_columns_raw:
             clean_col = col.split('.')[-1].strip() # Remove table alias (e.g., P.product_name -> product_name)
             clean_col = clean_col.split(' AS ')[0].strip() # Remove 'AS alias' if present
+            if clean_col.lower().startswith('distinct '):
+                clean_col = clean_col[len('distinct '):].strip() # Remove 'DISTINCT ' keyword
             cleaned_selected_columns.append(clean_col)
         
         Logger.info(f"Clean Columns : {', '.join(cleaned_selected_columns)}")
