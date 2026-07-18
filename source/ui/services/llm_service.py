@@ -22,33 +22,77 @@ def get_response_tokenizer():
 def get_response_model():
     return T5ForConditionalGeneration.from_pretrained("google/flan-t5-large")
 
-def format_response(user_query, sql_result):
-    message_tokenizer = get_response_tokenizer()
-    message_model = get_response_model()
+def format_response(user_query, sql_result, sql_query):
     user_friendly_message = None
-
     if sql_result:
-        product_summaries = []
-        for product_name, product_category, quantity in sql_result:
-            product_summaries.append(f"{quantity} units of {product_name}")
-        
-        formatted_results_string = ", ".join(product_summaries)
+        # 1. Parse generated_sql_manual to get selected columns
+        select_match = re.search(r'SELECT\s+(.*?)\s+FROM', sql_query, re.IGNORECASE)
+        selected_columns_raw = []
+        if select_match:
+            selected_columns_raw = [col.strip() for col in select_match.group(1).split(',')]
 
-        # Craft a prompt for the LLM to generate a user-friendly message
-        # Explicitly instruct the model not to output SQL and to provide a summary.
-        prompt = f"As an inventory assistant, your task is to provide a concise, user-friendly summary of inventory levels. Based on the user's request and the inventory data, generate a natural language message. Do not output any SQL code. Always list each product and its quantity. If a product has 0 quantity, clearly state '0 units'.\n\nUser's Original Question: '{user_query}'\nSQL Query Used (for context, do not output this): '{sql_result}'\nInventory Details: '{formatted_results_string}'\n\nExample of desired output: 'There are 5 units of Arridx, 3 units of Degree, and 0 units of Mitchum left.'\n\nYour summary:"
+        # Clean up column names (remove aliases like P., and 'AS alias')
+        cleaned_selected_columns = []
+        for col in selected_columns_raw:
+            clean_col = col.split('.')[-1].strip() # Remove table alias (e.g., P.product_name -> product_name)
+            clean_col = clean_col.split(' AS ')[0].strip() # Remove 'AS alias' if present
+            cleaned_selected_columns.append(clean_col)
 
-        # print(f"\nSending to LLM for user-friendly message:")
+        user_friendly_message = ""
+        message_parts = []
 
-        try:
-            input_ids = message_tokenizer.encode(prompt, return_tensors="pt")
-            outputs = message_model.generate(input_ids, max_new_tokens=100) # Increased max_new_tokens for longer summaries
-            user_friendly_message = message_tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
-            print(f"\nUser-friendly message: {user_friendly_message}")
-        except Exception as e:
-            print(f"Error generating user-friendly message: {e}")
+        # Determine which columns are present in the query result
+        has_product_name = 'product_name' in cleaned_selected_columns
+        has_product_category = 'product_category' in cleaned_selected_columns
+        has_quantity = 'quantity' in cleaned_selected_columns
+
+        # Iterate through the results to build message parts
+        for row in results:
+            # Create a dictionary for easier access by column name
+            # Assuming the number of columns in `row` matches `cleaned_selected_columns`
+            row_data = {col_name: value for col_name, value in zip(cleaned_selected_columns, row)}
+
+            # Apply logic based on column combinations
+            if has_product_name and has_quantity and has_product_category:
+                message_parts.append(f"{row_data.get('quantity', 'unknown')} {row_data.get('product_name', 'Unnamed')} {row_data.get('product_category', 'Category')}")
+            elif has_product_name and has_quantity:
+                message_parts.append(f"{row_data.get('quantity', 'unknown')} units of {row_data.get('product_name', 'Unnamed Product')}")
+            elif has_product_name and has_product_category:
+                message_parts.append(f"{row_data.get('product_name', 'Unnamed Product')} ({row_data.get('product_category', 'Category')})")
+            elif has_product_name:
+                message_parts.append(row_data.get('product_name', 'Unnamed Product'))
+            elif has_product_category:
+                message_parts.append(row_data.get('product_category', 'Unnamed Category'))
+            elif has_quantity:
+                message_parts.append(str(row_data.get('quantity', 'unknown')))
+            else:
+                # Fallback for any other combination
+                message_parts.append(", ".join([f"{k}: {v}" for k, v in row_data.items()]))
+
+        # Assemble the final user-friendly message based on the detected combination
+        if 'quantity < threshold' in generated_sql_manual or 'quantity < threshold' in generated_sql_manual.lower():
+            user_friendly_message = f"The following items are below threshold: {', '.join(message_parts)}."
+        elif 'quantity > threshold' in generated_sql_manual or 'quantity > threshold' in generated_sql_manual.lower():
+            user_friendly_message = f"The following items are above threshold: {', '.join(message_parts)}."
+        elif has_product_name and has_quantity and has_product_category:
+            user_friendly_message = f"We have {', '.join(message_parts)} in the inventory."
+        elif has_product_name and has_quantity:
+            user_friendly_message = f"There are {', '.join(message_parts)} left."
+        elif has_product_name and has_product_category:
+            user_friendly_message = f"The items are {', '.join(message_parts)}."
+        elif has_product_name:
+            user_friendly_message = f"The products are {', '.join(message_parts)}."
+        elif has_product_category:
+            user_friendly_message = f"The categories are {', '.join(message_parts)}."
+        elif has_quantity:
+            user_friendly_message = f"The quantities are {', '.join(message_parts)}."
+        else:
+            user_friendly_message = f"Here are the details: {'; '.join(message_parts)}."
+
+        print(f"\nUser-friendly message: {user_friendly_message}")
     else:
-        print("No results to generate a user-friendly message.")
+        user_friendly_message = "No results to generate a user-friendly message."
+        print(user_friendly_message)
     return user_friendly_message
 
 def execute_sql_query(sql_query:str):
@@ -138,7 +182,7 @@ def get_response(request_message:str) -> tuple[str, str]:
     prompt = get_llm_prompt(request_message)
     sql_query = get_sql_query_from_llm(prompt)
     query_result = execute_sql_query(sql_query)
-    response = format_response(request_message, query_result)
+    response = format_response(request_message, query_result, sql_query)
     return str(uuid.uuid4()), response
 
 def record_feedback(message_id:str, is_positive:bool) -> str:
