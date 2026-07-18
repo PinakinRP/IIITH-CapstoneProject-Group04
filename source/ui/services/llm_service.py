@@ -6,6 +6,7 @@ import constants as const
 import sqlite3
 import torch
 import re
+from services.logging_service import Logger
 
 @st.cache_resource
 def get_request_tokenizer():
@@ -23,22 +24,25 @@ def get_response_tokenizer():
 def get_response_model():
     return T5ForConditionalGeneration.from_pretrained("google/flan-t5-large")
 
-def format_response(user_query, sql_result, sql_query):
+def format_response(sql_result, sql_query):
     user_friendly_message = None
+    Logger.info("Generated Sql Query : %s", sql_query)
     if sql_result:
         # 1. Parse sql_query to get selected columns
         select_match = re.search(r'SELECT\s+(.*?)\s+FROM', sql_query, re.IGNORECASE)
         selected_columns_raw = []
         if select_match:
             selected_columns_raw = [col.strip() for col in select_match.group(1).split(',')]
-
+        
+        Logger.info("Selected Columns : %s", selected_columns_raw)
         # Clean up column names (remove aliases like P., and 'AS alias')
         cleaned_selected_columns = []
         for col in selected_columns_raw:
             clean_col = col.split('.')[-1].strip() # Remove table alias (e.g., P.product_name -> product_name)
             clean_col = clean_col.split(' AS ')[0].strip() # Remove 'AS alias' if present
             cleaned_selected_columns.append(clean_col)
-
+        
+        Logger.info("Clean Columns : %s", cleaned_selected_columns)
         user_friendly_message = ""
         message_parts = []
 
@@ -70,6 +74,7 @@ def format_response(user_query, sql_result, sql_query):
                 # Fallback for any other combination
                 message_parts.append(", ".join([f"{k}: {v}" for k, v in row_data.items()]))
 
+        Logger.info("Msg parts : %s", message_parts)
         # Assemble the final user-friendly message based on the detected combination
         if 'quantity < threshold' in sql_query.lower():
             user_friendly_message = f"The following items are below threshold: {', '.join(message_parts)}."
@@ -183,7 +188,7 @@ def get_response(request_message:str) -> tuple[str, str]:
     prompt = get_llm_prompt(request_message)
     sql_query = get_sql_query_from_llm(prompt)
     query_result = execute_sql_query(sql_query)
-    response = format_response(request_message, query_result, sql_query)
+    response = format_response(query_result, sql_query)
     return str(uuid.uuid4()), response
 
 def record_feedback(message_id:str, is_positive:bool) -> str:
