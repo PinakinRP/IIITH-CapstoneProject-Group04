@@ -48,7 +48,7 @@ def format_response(user_query, sql_result, sql_query):
         has_quantity = 'quantity' in cleaned_selected_columns
 
         # Iterate through the results to build message parts
-        for row in results:
+        for row in sql_result:
             # Create a dictionary for easier access by column name
             # Assuming the number of columns in `row` matches `cleaned_selected_columns`
             row_data = {col_name: value for col_name, value in zip(cleaned_selected_columns, row)}
