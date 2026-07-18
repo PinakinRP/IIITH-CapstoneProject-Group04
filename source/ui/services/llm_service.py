@@ -122,7 +122,7 @@ def execute_sql_query(sql_query:str):
 def get_llm_prompt(user_query:str) -> str:
     general_context = """You are given a database schema and a user's question.
         Your task is to generate ONLY the SQL query that answers the question based on the provided schema.
-        Follow the format of the examples exactly. For simple quantity queries, do not use aggregation (like SUM) unless explicitly asked.
+        Follow the format of the examples exactly. For simple quantity queries, do not use aggregation (like SUM) unless explicitly asked.  Do not include ORDER BY clauses or filter by threshold unless explicitly asked.
         Use exact matches for product names. Where clause can only have either product_name or product_category.
         The values in product_category can be either Soap, Beverage, or Deo.
         Sometimes these can be referenced as Soaps, Beverages, or Deos as well in the user query, but in DB they are saved without s.
@@ -132,8 +132,8 @@ def get_llm_prompt(user_query:str) -> str:
         SQL: SELECT product_name, product_category, quantity FROM Product WHERE product_name = 'Arridx'
 
         Example 2:
-        Question: Get me the inventory of different Deo
-        SQL: SELECT product_name, quantity FROM Product WHERE product_category = 'Deo'
+        Question: What is the inventory of different deos?
+        SQL: SELECT product_name, product_category, quantity FROM Product WHERE product_category = 'Deo'
 
         Example 3:
         Question: Which Deos are below threshold in the inventory?
