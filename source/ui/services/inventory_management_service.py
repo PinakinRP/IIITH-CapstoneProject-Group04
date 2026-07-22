@@ -28,7 +28,8 @@ def generate_invoice(item_details:pd.DataFrame) -> pd.DataFrame:
 def get_unit_prices(item_codes:list) -> pd.DataFrame:
     conn = sqlite3.connect(const.DB_FILE_PATH) 
     try:
-        query = f"SELECT product_code AS [{const.INVOICE_COLUMNS[0]}], unit_price AS [{const.INVOICE_COLUMNS[3]}] FROM product WHERE product_code IN ('{"','".join(item_codes)}')"
+        product_codes = "','".join(item_codes)
+        query = f"SELECT product_code AS [{const.INVOICE_COLUMNS[0]}], unit_price AS [{const.INVOICE_COLUMNS[3]}] FROM product WHERE product_code IN ('{product_codes}')"
         return pd.read_sql_query(query, conn, dtype={
             const.INVOICE_COLUMNS[0]: 'string',
             const.INVOICE_COLUMNS[3]: 'float64'
