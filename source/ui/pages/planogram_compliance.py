@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import constants as const
 from components.sidebar import render_sidebar
-import services.invertory_management_service as ims
+import services.inventory_management_service as ims
 import services.image_processing_service as ips
 from PIL import Image
 from pathlib import Path
