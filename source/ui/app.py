@@ -9,5 +9,3 @@ st.set_page_config(
 )
 
 Logger.initialize()
-
-home
