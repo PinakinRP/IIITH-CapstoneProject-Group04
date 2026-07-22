@@ -47,17 +47,23 @@ def get_chroma_collection():
     except Exception as e:
         raise Exception(f"Error loading ChromaDB collection: {e}. Please ensure the ChromaDB is properly initialized.")
 
-def process_crops_for_streamlit(uploaded_image_pil, df_annotations_for_this_image):
+@st.cache_resource(show_spinner=False)
+def get_annotation_model() -> YOLO:
+    Logger.debug("Loading annotation model...")
+    return YOLO(const.YOLO_MODEL_PATH)
+
+def process_crops_for_streamlit(uploaded_image_pil):
     crop_data = []
-
-    if df_annotations_for_this_image.empty:
-        return pd.DataFrame(crop_data)
-
-    for idx, row in df_annotations_for_this_image.iterrows():
-        x1 = int(row['x1'])
-        y1 = int(row['y1'])
-        x2 = int(row['x2'])
-        y2 = int(row['y2'])
+    yolo_model = get_annotation_model()
+    Logger.debug("Loaded annotation model.")
+    Logger.debug("Processing image through annotation model...")
+    yolo_results = yolo_model(uploaded_image_pil, imgsz=1024)
+    Logger.debug("Annotation model processed the image.")
+    yolo_result = yolo_results[0]
+    boxes = yolo_result.boxes.xyxy.cpu().numpy()
+    Logger.debug(f"Found {len(boxes)} boxes.")
+    for idx, box in enumerate(boxes):
+        x1, y1, x2, y2 = map(int, box)
 
         try:
             crop = uploaded_image_pil.crop((x1, y1, x2, y2))
@@ -76,6 +82,7 @@ def process_crops_for_streamlit(uploaded_image_pil, df_annotations_for_this_imag
             )
         except Exception as e:
             raise Exception(f"Error processing crop {idx} from {const.ORIGINAL_IMAGE}: {e}")
+    Logger.debug("Completed image cropping.")
     return pd.DataFrame(crop_data)
 
 
@@ -130,7 +137,7 @@ def draw_boxes_on_image(image_pil, df_crops_with_predictions, df_classnames_map)
     # Convert PIL Image to OpenCV format for drawing
     img_np = np.array(image_pil.convert("RGB"))
     img_cv2 = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-
+    print(f"image_pil.width = {image_pil.width}")
     for idx, row in df_crops_with_predictions.iterrows():
         x1, y1, x2, y2 = int(row['x1']), int(row['y1']), int(row['x2']), int(row['y2'])
         predicted_class_id = row['predicted_class_id']
@@ -143,7 +150,7 @@ def draw_boxes_on_image(image_pil, df_crops_with_predictions, df_classnames_map)
             text = f"C{predicted_class_id}"
             # Adjust font scale and thickness based on image size if necessary
             font_scale = 0.8 * (image_pil.width / 1000) # dynamic scaling, reduced from 1.0
-            font_thickness = max(1.2, int(3 * (image_pil.width / 1000)))
+            font_thickness = max(1, int(3 * (image_pil.width / 1000)))
             cv2.putText(img_cv2, text, (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, font_thickness)
 
     # Convert back to PIL Image for Streamlit display
@@ -162,89 +169,92 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
     
     #**************************************
     original_image_pil = Image.open(image_bytes).convert("RGB")
-    df_annots_global = load_annotations()
+    #df_annots_global = load_annotations()
     df_classnames = load_class_names()
-    df_annotations_for_this_image = df_annots_global[df_annots_global['image'] == file_name]
+    #df_annotations_for_this_image = df_annots_global[df_annots_global['image'] == file_name]
     
-    if df_annotations_for_this_image.empty:
+    # if df_annotations_for_this_image.empty:
+    #     #display st msg
+    #     raise Exception(f"No annotations found for '{file_name}' in the dataset. Please upload an image only from the given subset.")
+    # else:
+    # Step 1: Extract crops
+    df_test_crops_streamlit = process_crops_for_streamlit(original_image_pil)
+
+    collection = get_chroma_collection()
+    
+    annotated_image = None
+    df_display_table = None
+    
+    if not df_test_crops_streamlit.empty:
         #display st msg
-        raise Exception(f"No annotations found for '{file_name}' in the dataset. Please upload an image only from the given subset.")
-    else:
-        # Step 1: Extract crops
-        df_test_crops_streamlit = process_crops_for_streamlit(original_image_pil, df_annotations_for_this_image)
-
-        collection = get_chroma_collection()
-        
-        if not df_test_crops_streamlit.empty:
-            #display st msg
-            Logger.info(f"Extracted {len(df_test_crops_streamlit)} product crops.")
-            # Step 2: recognizing the extracted crops
-            Logger.info("Analysing the products...")
-            encoder, inference_transform, device = load_model_and_transforms()
-            embeddings_test_list = []
-            for _, row in df_test_crops_streamlit.iterrows():
-                if row['crop_pil'] is not None: # Ensure crop_pil is not None
-                    embedding = get_embedding_resnet(row['crop_pil'], encoder, inference_transform, device)
-                    if embedding is not None:
-                        embeddings_test_list.append(embedding.tolist())
-                    else:
-                        embeddings_test_list.append(None) # Handle cases where embedding generation failed
+        Logger.info(f"Extracted {len(df_test_crops_streamlit)} product crops.")
+        # Step 2: recognizing the extracted crops
+        Logger.info("Analysing the products...")
+        encoder, inference_transform, device = load_model_and_transforms()
+        embeddings_test_list = []
+        for _, row in df_test_crops_streamlit.iterrows():
+            if row['crop_pil'] is not None: # Ensure crop_pil is not None
+                embedding = get_embedding_resnet(row['crop_pil'], encoder, inference_transform, device)
+                if embedding is not None:
+                    embeddings_test_list.append(embedding.tolist())
                 else:
-                    embeddings_test_list.append(None)
-
-            df_test_crops_streamlit['embeddings'] = embeddings_test_list
-
-            # Filter out crops where embedding generation might have failed
-            df_test_crops_streamlit = df_test_crops_streamlit.dropna(subset=['embeddings'])
-            
-            if not df_test_crops_streamlit.empty and collection is not None:
-                Logger.info("Classifying the products...")
-                # Ensure embeddings are in correct format for query
-                query_embeddings_for_db = [emb for emb in df_test_crops_streamlit['embeddings'] if emb is not None]
-
-                if query_embeddings_for_db:
-                    query_results = collection.query(
-                        query_embeddings=query_embeddings_for_db,
-                        n_results=1,
-                        include=['metadatas']
-                    )
-
-                    predicted_class_ids = []
-                    for metadata_list in query_results['metadatas']:
-                        if metadata_list: # Ensure there is a match
-                            predicted_class_id = metadata_list[0].get('class_id')
-                            predicted_class_ids.append(predicted_class_id)
-                        else:
-                            predicted_class_ids.append(None) # No match found
-
-                    df_test_crops_streamlit['predicted_class_id'] = predicted_class_ids
-                    df_test_crops_streamlit = df_test_crops_streamlit.dropna(subset=['predicted_class_id']) # Remove crops without a prediction
-                    df_test_crops_streamlit['predicted_class_id'] = df_test_crops_streamlit['predicted_class_id'].astype(int)
-                    
-                    if not df_test_crops_streamlit.empty:
-                        annotated_image = draw_boxes_on_image(original_image_pil, df_test_crops_streamlit, df_classnames)
-                    
-                        df_display_table = pd.merge(
-                                df_test_crops_streamlit.groupby('predicted_class_id').size().reset_index(name='Product Count'),
-                                df_classnames,
-                                left_on='predicted_class_id',
-                                right_on='cluster_id',
-                                how='left'
-                            )
-                        df_display_table = df_display_table[['cluster_id', 'cluster_name', 'Product Count']]
-                        df_display_table.columns = ['Class ID', 'Class Name', 'Product Count']
-                    else:
-                        Logger.info("No product classifications were obtained. This might indicate that no matching products were found or the products are unknown.", True)
-                else:
-                    Logger.info("Products are not recognized.", True)
-                
+                    embeddings_test_list.append(None) # Handle cases where embedding generation failed
             else:
-                if collection is None:
-                    raise Exception("Database is not available. Please check the DB setup.")
+                embeddings_test_list.append(None)
+
+        df_test_crops_streamlit['embeddings'] = embeddings_test_list
+
+        # Filter out crops where embedding generation might have failed
+        df_test_crops_streamlit = df_test_crops_streamlit.dropna(subset=['embeddings'])
+        
+        if not df_test_crops_streamlit.empty and collection is not None:
+            Logger.info("Classifying the products...")
+            # Ensure embeddings are in correct format for query
+            query_embeddings_for_db = [emb for emb in df_test_crops_streamlit['embeddings'] if emb is not None]
+
+            if query_embeddings_for_db:
+                query_results = collection.query(
+                    query_embeddings=query_embeddings_for_db,
+                    n_results=1,
+                    include=['metadatas']
+                )
+
+                predicted_class_ids = []
+                for metadata_list in query_results['metadatas']:
+                    if metadata_list: # Ensure there is a match
+                        predicted_class_id = metadata_list[0].get('class_id')
+                        predicted_class_ids.append(predicted_class_id)
+                    else:
+                        predicted_class_ids.append(None) # No match found
+
+                df_test_crops_streamlit['predicted_class_id'] = predicted_class_ids
+                df_test_crops_streamlit = df_test_crops_streamlit.dropna(subset=['predicted_class_id']) # Remove crops without a prediction
+                df_test_crops_streamlit['predicted_class_id'] = df_test_crops_streamlit['predicted_class_id'].astype(int)
+                
+                if not df_test_crops_streamlit.empty:
+                    annotated_image = draw_boxes_on_image(original_image_pil, df_test_crops_streamlit, df_classnames)
+                
+                    df_display_table = pd.merge(
+                            df_test_crops_streamlit.groupby('predicted_class_id').size().reset_index(name='Product Count'),
+                            df_classnames,
+                            left_on='predicted_class_id',
+                            right_on='cluster_id',
+                            how='left'
+                        )
+                    df_display_table = df_display_table[['cluster_id', 'cluster_name', 'Product Count']]
+                    df_display_table.columns = ['Class ID', 'Class Name', 'Product Count']
                 else:
-                    Logger.info("No products are recognized from the image.", True)
+                    Logger.warning("No product classifications were obtained. This might indicate that no matching products were found or the products are unknown.", True)
+            else:
+                Logger.warning("Products are not recognized.")
+            
         else:
-            Logger.info("Image is unidentified / Not known to model.", True)
+            if collection is None:
+                raise Exception("Database is not available. Please check the DB setup.")
+            else:
+                Logger.warning("No products are recognized from the image.")
+    else:
+        Logger.warning("Image is unidentified / Not known to model.")
             
     result.annotated_image = annotated_image
     result.item_details = []

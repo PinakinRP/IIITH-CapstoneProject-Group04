@@ -13,6 +13,8 @@ INVOICE_COLUMNS = IMAGE_CLASSIFICATION_COLUMNS + ["Unit Price", "Total Price"]
 TEMPLATE_IMAGE = WORK_DIR / f"template.{DEFAULT_IMAGE_FORMAT}"
 DB_FILE_PATH = ROOT_DIR / "data" / "inventory.db"
 LOGGING_FILE = WORK_DIR / "app.log"
+#YOLO_MODEL_PATH = ROOT_DIR / "models" / "yolo26n.pt"
+YOLO_MODEL_PATH = ROOT_DIR / "models" / "yolo26.pt"
 
 # --- Configuration ---
 CHROMA_PATH = ROOT_DIR / "data" / "chroma_db"
