@@ -4,23 +4,13 @@ from components.sidebar import render_sidebar
 import services.invertory_management_service as ims
 import constants as const
 from services.logging_service import Logger
+import services.page_service as ps
 
-def initialize_session_state():
-    if "search_results" not in st.session_state:
-        st.session_state.search_results = None
-
-    if "new_stock_values" not in st.session_state:
-        st.session_state.new_stock_values = {}
-
-    if "search_text" not in st.session_state:
-        st.session_state.search_text = ""
-
-    if "manage_inventory_warning_message" not in st.session_state:
-        st.session_state.manage_inventory_warning_message = ""
-
-def reset_page_state():
-    st.session_state.search_results = pd.DataFrame()
-    st.session_state.new_stock_values = {}
+def reset_session_state():
+    st.session_state.search_results = None
+    st.session_state.edited_data = None
+    st.session_state.search_text = None
+    st.session_state.manage_inventory_warning_message = ""
 
 def render_styles():
     st.markdown("""
@@ -98,10 +88,6 @@ def render_save_button():
                     st.toast("Products update failed.", icon="❌")
 
 def render_page():
-    global search_container, grid_container, save_button_container, save_button_message, add_product_container
-    
-    initialize_session_state()
-
     st.set_page_config(
         page_title="Product Setup",
         page_icon="🛍️",
@@ -124,5 +110,6 @@ def render_page():
     render_product_grid()
     render_save_button() 
 
-if __name__ == "__main__":
-    render_page()
+if not ps.is_postback(__file__):
+    reset_session_state()
+render_page()

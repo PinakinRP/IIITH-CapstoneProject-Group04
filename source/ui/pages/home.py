@@ -2,6 +2,7 @@ import streamlit as st
 from components.sidebar import render_sidebar
 from pathlib import Path
 from constants import IMAGE_DIR
+import services.page_service as ps
 
 def render_page():
     # --- PAGE CONFIGURATION ---
@@ -57,5 +58,6 @@ def render_page():
             with right_col:
                 st.subheader("Check Planogram Compliance")
                 st.write("Upload the shelf and planogram template images to check the compliance.")
-if __name__ == "__main__":
-    render_page()
+    
+render_page()
+ps.set_current_page(__file__)

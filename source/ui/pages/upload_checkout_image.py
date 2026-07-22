@@ -5,30 +5,8 @@ from components.sidebar import render_sidebar
 import services.invertory_management_service as ims
 import services.image_processing_service as ips
 from PIL import Image
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
-
-def initialize_session_state():
-    # --- Initialize Persistent Variables ---
-    if "show_image_dialog" not in st.session_state:
-        st.session_state.show_image_dialog = False
-
-    if "dialog_image" not in st.session_state:
-        st.session_state.dialog_image = None
-
-    if "dialog_title" not in st.session_state:
-        st.session_state.dialog_title = ""
-
-    if "image_classifications" not in st.session_state:
-        st.session_state.image_classifications = None
-
-    if "had_file" not in st.session_state:
-        st.session_state.had_file = False
-
-    if "update_status" not in st.session_state:
-        st.session_state.update_status = 0
-
-    if "file_upload_version" not in st.session_state:
-        st.session_state.file_upload_version = 0
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+import services.page_service as ps
 
 def reset_session_state():
     st.session_state.show_image_dialog = False
@@ -189,20 +167,22 @@ def render_images():
 def render_product_by_class_section():
 
     if "image_classifications" in st.session_state and st.session_state.image_classifications is not None:
-        data = pd.DataFrame(st.session_state.image_classifications.item_details)
+        invoice_data = ims.generate_invoice(pd.DataFrame(st.session_state.image_classifications.item_details))
+        data = invoice_data #pd.DataFrame(st.session_state.image_classifications.item_details)
 
         if data is not None and not data.empty:
-            total_quantity = data[const.IMAGE_CLASSIFICATION_COLUMNS[2]].sum()
-            total_items = data[const.IMAGE_CLASSIFICATION_COLUMNS[0]].nunique()
+            total_quantity = data[const.INVOICE_COLUMNS[2]].sum()
+            total_items = data[const.INVOICE_COLUMNS[0]].nunique()
+            total_price = data[const.INVOICE_COLUMNS[4]].sum()
         
             st.write("")
         
             if "selected_class" not in st.session_state:
                 st.session_state.selected_class = list(data)[0]
             
-            st.subheader("Checkout Report")
+            st.subheader("Invoice")
             
-            m1, m2 = st.columns(2)
+            m1, m2, m3 = st.columns(3)
             with m1:
                 st.metric(
                     label="🏷️ Total Items",
@@ -215,26 +195,45 @@ def render_product_by_class_section():
                     value=total_quantity
                 )
 
+            with m3:
+                st.metric(
+                    label="💵 Total Amount",
+                    value=f"{total_price:,.2f}"
+                )
+
+            num_formatter = JsCode("""
+                function(params) {
+                    if (params.value == null) return '';
+                    return Number(params.value).toFixed(2);
+                }
+            """)
+
             gb = GridOptionsBuilder.from_dataframe(data)
+
             gb.configure_default_column(
-                sortable=True,
-                filter=True,
+                sortable=False,
+                filter=False,
                 resizable=True,
             )
+
             gb.configure_selection(
                 selection_mode="disabled",
                 use_checkbox=False
             )
+
             gb.configure_grid_options(
                 rowSelection="disabled",
                 suppressRowClickSelection=False
             )
             
+            gb.configure_column(const.INVOICE_COLUMNS[4], valueFormatter=num_formatter)
+
             grid_response = AgGrid(
                 data,
                 gridOptions=gb.build(),
                 fit_columns_on_grid_load=True,
-                height=450
+                height=450,
+                allow_unsafe_jscode=True
             )
 
             selected_rows = grid_response["selected_rows"]
@@ -247,7 +246,9 @@ def render_save_button():
         if st.button("💾 Update Inventory", use_container_width=True):
             with st.spinner("Updating the inventory..."):
                 try:
-                    ims.update_inventory(pd.DataFrame(st.session_state.image_classifications.item_details), add=False)
+                    inventory_data = pd.DataFrame(st.session_state.image_classifications.item_details)
+                    inventory_data[const.INVENTORY_COLUMNS[2]] = 0 - inventory_data[const.INVENTORY_COLUMNS[2]]
+                    ims.update_inventory(inventory_data, replace=False)
                     st.session_state.update_status = 1
                     reset_screen()
                 except Exception as ex:
@@ -261,9 +262,6 @@ def render_save_button():
         st.session_state.update_status = 0
 
 def render_page():
-    # pass
-    initialize_session_state()
-    
     st.set_page_config(
         page_title="Checkout Items",
         page_icon="🛒",
@@ -277,5 +275,8 @@ def render_page():
     render_product_by_class_section()
     render_save_button()
 
-if __name__ == "__main__":
-    render_page()
+if not ps.is_postback(__file__):
+    reset_session_state()
+    st.session_state.file_upload_version = 0
+
+render_page()

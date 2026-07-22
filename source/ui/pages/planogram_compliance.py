@@ -7,32 +7,7 @@ import services.image_processing_service as ips
 from PIL import Image
 from pathlib import Path
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
-
-def initialize_session_state():
-    # --- Initialize Persistent Variables ---
-    if "show_image_dialog" not in st.session_state:
-        st.session_state.show_image_dialog = False
-
-    if "dialog_image" not in st.session_state:
-        st.session_state.dialog_image = None
-
-    if "dialog_title" not in st.session_state:
-        st.session_state.dialog_title = ""
-
-    if "planogram_report" not in st.session_state:
-        st.session_state.planogram_report = None
-
-    if "had_shelf_image" not in st.session_state:
-        st.session_state.had_shelf_image = False
-
-    if "shelf_image_saved" not in st.session_state:
-        st.session_state.shelf_image_saved = False
-
-    if "had_template_image" not in st.session_state:
-        st.session_state.had_template_image = False
-
-    if "template_image_saved" not in st.session_state:
-        st.session_state.template_image_saved = False
+import services.page_service as ps
 
 def reset_session_state():
     st.session_state.show_image_dialog = False
@@ -296,5 +271,7 @@ def render_page():
     render_uploadfile_section() 
     render_button()
 
-if __name__ == "__main__":
-    render_page()
+if not ps.is_postback(__file__):
+    reset_session_state()
+
+render_page()

@@ -6,29 +6,7 @@ import services.invertory_management_service as ims
 import services.image_processing_service as ips
 from PIL import Image
 from st_aggrid import AgGrid, GridOptionsBuilder
-
-def initialize_session_state():
-    # --- Initialize Persistent Variables ---
-    if "show_image_dialog" not in st.session_state:
-        st.session_state.show_image_dialog = False
-
-    if "dialog_image" not in st.session_state:
-        st.session_state.dialog_image = None
-
-    if "dialog_title" not in st.session_state:
-        st.session_state.dialog_title = ""
-
-    if "image_classifications" not in st.session_state:
-        st.session_state.image_classifications = None
-
-    if "had_file" not in st.session_state:
-        st.session_state.had_file = False
-
-    if "update_status" not in st.session_state:
-        st.session_state.update_status = 0
-
-    if "file_upload_version" not in st.session_state:
-        st.session_state.file_upload_version = 0
+import services.page_service as ps
 
 def reset_session_state():
     st.session_state.file_selected = None
@@ -37,7 +15,10 @@ def reset_session_state():
     st.session_state.dialog_title = ""
     st.session_state.image_classifications = None
     st.session_state.had_file = False
-    st.session_state.file_upload_version += 1
+    if "file_upload_version" in st.session_state:
+        st.session_state.file_upload_version += 1
+    else:
+        st.session_state.file_upload_version = 0
 
 def render_styles():
     st.markdown("""
@@ -286,6 +267,8 @@ def render_product_by_class_section():
 
                 with gallery:
                     images = []
+                    print(type(selected_class))
+                    print(selected_class in st.session_state.image_classifications.class_images)
                     if st.session_state.image_classifications.class_images is not None and selected_class in st.session_state.image_classifications.class_images:
                         images = st.session_state.image_classifications.class_images[selected_class]
                     COLS = 3
@@ -297,30 +280,15 @@ def render_product_by_class_section():
                         for col, img in zip(cols, images[i:i+COLS]):
                             with col:
                                 try:
-                                    inner_col1, inner_col2 = st.columns([6,1])
-                                    with inner_col1:
-                                        #image = Image.open(img)
-                                        st.image(
-                                            img,
-                                            use_container_width=True
-                                        )
-                                    # with inner_col2:
-                                    #     if st.button(
-                                    #         "⛶",
-                                    #         key=f"expand_{index}",
-                                    #         help="View full size"
-                                    #     ):
-                                    #         st.session_state.dialog_title = f"{st.session_state.selected_class} {index}"
-                                    #         st.session_state.dialog_image = image
-                                    #         show_image_dialog()
+                                    st.image(
+                                        img,
+                                        use_container_width=True
+                                    )
                                 except:
                                     st.info("No Image")
                         index += 1
 
 def render_page():
-    # pass
-    initialize_session_state()
-    
     st.set_page_config(
         page_title="Update Inventory",
         page_icon="📷",
@@ -331,7 +299,6 @@ def render_page():
 
     render_styles() 
 
-    #st.title("🛒 Product Detection & Classification")
     col1, col2 = st.columns([1, 11])
     with col1:
         st.image(
@@ -345,5 +312,8 @@ def render_page():
     render_product_by_class_section()  
     render_save_button() 
 
-if __name__ == "__main__":
-    render_page()
+if not ps.is_postback(__file__):
+    reset_session_state()
+    st.session_state.file_upload_version = 0
+
+render_page()

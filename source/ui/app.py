@@ -10,4 +10,4 @@ st.set_page_config(
 
 Logger.initialize()
 
-home.render_page()
+home

@@ -1,5 +1,8 @@
 import streamlit as st
 
+if "current_page" not in st.session_state:
+    st.session_state.current_page = ""
+
 def render_sidebar():
     st.markdown("""
 <style>

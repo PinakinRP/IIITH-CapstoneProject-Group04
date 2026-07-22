@@ -2,8 +2,9 @@ import streamlit as st
 import constants as const
 import streamlit.components.v1 as stc
 from components.sidebar import render_sidebar
-import services.llm_service as ls
+import services.llm_test_service as ls
 import uuid
+import services.page_service as ps 
 
 def render_chatbot():
     col1, col2 = st.columns([1, 11])
@@ -195,8 +196,7 @@ def render_page():
     )
 
     render_sidebar()
-
     render_chatbot()
 
-if __name__ == "__main__":
-    render_page()
+ps.set_current_page(__file__)
+render_page()

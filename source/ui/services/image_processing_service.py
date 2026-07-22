@@ -252,19 +252,19 @@ def classify_image(image_bytes: BytesIO, file_name:str) -> ImageClassifications:
     if df_display_table is not None and not df_display_table.empty:
         for _, row in df_display_table.iterrows():
             dict_data = {
-                const.IMAGE_CLASSIFICATION_COLUMNS[0]: row['Class ID'],
+                const.IMAGE_CLASSIFICATION_COLUMNS[0]: str(row['Class ID']),
                 const.IMAGE_CLASSIFICATION_COLUMNS[1]: row['Class Name'],
                 const.IMAGE_CLASSIFICATION_COLUMNS[2]: row['Product Count']
             }
             result.item_details.append(dict_data)
 
     if df_test_crops_streamlit is not None and not df_test_crops_streamlit.empty:
-        result.class_images = (
+        class_images = (
             df_test_crops_streamlit.groupby('predicted_class_id')['crop_pil']
             .apply(list)
             .to_dict()
         )
-        
+        result.class_images = {str(k): v for k, v in class_images.items()}
 
     '''yolo_model = YOLO("yolo26s.pt")
     yolo_results = yolo_model(image)

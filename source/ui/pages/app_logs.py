@@ -2,6 +2,7 @@ import streamlit as st
 from components.sidebar import render_sidebar
 import constants as const
 from pathlib import Path
+import services.page_service as ps 
 
 def render_style():
     st.markdown("""
@@ -56,6 +57,6 @@ def render_page():
                 st.info("Empty file.")
         else:
             st.info("No log file found.")
-    
-if __name__ == "__main__":
-    render_page()
+
+ps.set_current_page(__file__)
+render_page()
