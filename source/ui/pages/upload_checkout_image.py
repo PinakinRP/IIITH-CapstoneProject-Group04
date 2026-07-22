@@ -14,7 +14,10 @@ def reset_session_state():
     st.session_state.dialog_title = ""
     st.session_state.image_classifications = None
     st.session_state.had_file = False
-    st.session_state.file_upload_version += 1
+    if "file_upload_version" in st.session_state:
+        st.session_state.file_upload_version += 1
+    else:
+        st.session_state.file_upload_version = 0
 
 def render_styles():
     st.markdown("""
