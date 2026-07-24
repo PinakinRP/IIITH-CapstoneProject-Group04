@@ -52,6 +52,7 @@ def format_response(sql_result, sql_query):
         has_product_name = 'product_name' in cleaned_selected_columns
         has_product_category = 'product_category' in cleaned_selected_columns
         has_quantity = 'quantity' in cleaned_selected_columns
+        has_unit_price = 'unit_price' in cleaned_selected_columns
 
         # Iterate through the results to build message parts
         for row in sql_result:
@@ -60,7 +61,9 @@ def format_response(sql_result, sql_query):
             row_data = {col_name: value for col_name, value in zip(cleaned_selected_columns, row)}
 
             # Apply logic based on column combinations
-            if has_product_name and has_quantity and has_product_category:
+            if has_product_name and has_unit_price:
+                message_parts.append(f"Product : {row_data.get('product_name', 'Unnamed Product')} and Price :{row_data.get('unit_price', 'unknown')}")
+            elif has_product_name and has_quantity and has_product_category:
                 message_parts.append(f"{row_data.get('quantity', 'unknown')} {row_data.get('product_name', 'Unnamed')} {row_data.get('product_category', 'Category')}")
             elif has_product_name and has_quantity:
                 message_parts.append(f"{row_data.get('quantity', 'unknown')} units of {row_data.get('product_name', 'Unnamed Product')}")
@@ -82,6 +85,8 @@ def format_response(sql_result, sql_query):
             user_friendly_message = f"The following items are below threshold: {', '.join(message_parts)}."
         elif 'quantity > threshold' in sql_query.lower():
             user_friendly_message = f"The following items are above threshold: {', '.join(message_parts)}."
+        elif has_product_name and has_unit_price:
+            user_friendly_message = f"Result of the query -> {', '.join(message_parts)}"
         elif has_product_name and has_quantity and has_product_category:
             user_friendly_message = f"We have {', '.join(message_parts)} in the inventory."
         elif has_product_name and has_quantity:
@@ -142,6 +147,14 @@ def get_llm_prompt(user_query:str) -> str:
         Example 4:
         Question: Which products are below threshold in the inventory?
         SQL: SELECT product_name, product_category, quantity FROM Product WHERE quantity < threshold
+
+        Example 5:
+        Question: What is the price of the Arridx deo?
+        SQL: SELECT product_name, unit_price FROM Product WHERE product_name = 'Arridx' and product_category = 'Deo'
+
+        Example 6:
+        Question: Which is the cheapest deo in the inventory?
+        SQL: SELECT product_name, unit_price FROM Product WHERE product_category = 'deo' ORDER BY unit_price ASC LIMIT 1;
         ---
         Given the following:
     """
