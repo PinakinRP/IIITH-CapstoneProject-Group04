@@ -155,6 +155,10 @@ def get_llm_prompt(user_query:str) -> str:
         Example 6:
         Question: Which is the cheapest deo in the inventory?
         SQL: SELECT product_name, unit_price FROM Product WHERE product_category = 'deo' ORDER BY unit_price ASC LIMIT 1;
+
+        Example 7:
+        Question: Update the quantity of Arridx deo to 7?
+        SQL: UPDATE Product SET quantity = 7 WHERE product_name = 'Arridx' and product_category = 'Deo';
         ---
         Given the following:
     """
