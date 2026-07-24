@@ -200,10 +200,19 @@ def get_sql_query_from_llm(prompt:str) -> str:
     return generated_sql_manual
 
 def get_response(request_message:str) -> tuple[str, str]:
+    keywords = [
+        "update", "drop", "insert", "delete", "create", 
+        "alter", "truncate", "rename", "grant", "revoke", 
+        "commit", "savepoint"
+    ]
+    pattern = re.compile(r'\b(' + '|'.join(keywords) + r')\b', re.IGNORECASE)
     prompt = get_llm_prompt(request_message)
     sql_query = get_sql_query_from_llm(prompt)
-    query_result = execute_sql_query(sql_query)
-    response = format_response(query_result, sql_query)
+    if pattern.search(sql_query):
+        response = "Data manipulation/updation is not allowed. Reach out to the admin for these queries"
+    else:
+        query_result = execute_sql_query(sql_query)
+        response = format_response(query_result, sql_query)
     return str(uuid.uuid4()), response
 
 def record_feedback(message_id:str, is_positive:bool) -> str:
