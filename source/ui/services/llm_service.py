@@ -209,9 +209,11 @@ def get_response(request_message:str) -> tuple[str, str]:
     prompt = get_llm_prompt(request_message)
     sql_query = get_sql_query_from_llm(prompt)
     if pattern.search(sql_query):
+        Logger.info(f"Data manipulation attempted")
         response = "Data manipulation/updation is not allowed. Reach out to the admin for these queries"
     else:
         query_result = execute_sql_query(sql_query)
+        Logger.info(f"Query executed")
         response = format_response(query_result, sql_query)
     return str(uuid.uuid4()), response
 
